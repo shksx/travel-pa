@@ -41,8 +41,9 @@ input,textarea,select{font-family:inherit;}
 .vw.active{opacity:1;pointer-events:all;}
 
 /* ═══ TAB BAR ═══ */
-.tabs{height:60px;background:var(--bg2);border-top:1px solid var(--border);display:flex;flex-shrink:0;z-index:20;padding-bottom:env(safe-area-inset-bottom);}
-.tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:none;background:none;color:var(--muted);transition:color .2s;padding:0;position:relative;}
+.tabs{height:calc(60px + env(safe-area-inset-bottom));background:var(--bg2);border-top:1px solid var(--border);display:flex;flex-shrink:0;z-index:100;padding-bottom:env(safe-area-inset-bottom);position:relative;isolation:isolate;}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:none;background:transparent;color:var(--muted);transition:color .2s;padding:10px 0;position:relative;height:100%;min-height:60px;-webkit-tap-highlight-color:transparent;}
+.tab>*,.tab svg,.tab svg *,.tab span,.tab .tab-badge{pointer-events:none!important;}
 .tab.active{color:var(--gold);}
 .tab svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
 .tab span{font-size:9.5px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;}
@@ -302,8 +303,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:17px;heigh
 .save-btn:active{transform:scale(.98);}
 
 /* ═══ TOAST ═══ */
-.toast{position:fixed;bottom:75px;left:50%;transform:translateX(-50%) translateY(14px);background:var(--green);color:white;font-weight:600;font-size:13px;padding:10px 20px;border-radius:30px;box-shadow:0 4px 18px rgba(46,204,113,.4);opacity:0;transition:all .3s;z-index:999;white-space:nowrap;}
-.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.toast{position:fixed;bottom:75px;left:50%;transform:translateX(-50%) translateY(14px);background:var(--green);color:white;font-weight:600;font-size:13px;padding:10px 20px;border-radius:30px;box-shadow:0 4px 18px rgba(46,204,113,.4);opacity:0;pointer-events:none;transition:all .3s;z-index:999;white-space:nowrap;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto;}
 
 /* ═══ NOTIFICATION PANEL ═══ */
 .notif-panel{position:absolute;top:56px;right:0;left:0;bottom:60px;background:rgba(11,17,23,.96);z-index:50;overflow-y:auto;padding:12px;opacity:0;pointer-events:none;transition:opacity .2s;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);}
@@ -819,6 +820,11 @@ function switchTab(t){
   // close notif panel
   document.getElementById('notif-panel').classList.remove('open');
 }
+// Event delegation: any click inside .tabs finds the closest .tab button and switches.
+document.querySelector('.tabs').addEventListener('click',function(e){
+  const btn=e.target.closest('.tab');
+  if(btn&&btn.dataset.tab)switchTab(btn.dataset.tab);
+});
 
 function toggleNotifs(){
   document.getElementById('notif-panel').classList.toggle('open');
@@ -918,10 +924,48 @@ const ci=document.getElementById('chat-inp');
 ci.addEventListener('input',function(){autoR(this);});
 ci.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}});
 
-function send(){
+// Conversation history sent to /api/chat on every turn so Claude has context.
+const conversation=[];
+
+async function send(){
   const i=document.getElementById('chat-inp');const t=i.value.trim();if(!t||typing)return;
-  i.value='';autoR(i);addUser(t);showTyping();
-  setTimeout(()=>{hideTyping();addPA(t);},1300+Math.random()*500);
+  i.value='';autoR(i);addUser(t);
+  conversation.push({role:'user',content:t});
+  showTyping();
+  let prefs={};
+  try{prefs=JSON.parse(localStorage.getItem('tpa3')||'{}');}catch(e){}
+  try{
+    const resp=await fetch('/api/chat',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({messages:conversation,prefs})
+    });
+    const data=await resp.json().catch(()=>({error:'Invalid response from server.'}));
+    hideTyping();
+    if(!resp.ok||data.error){
+      addPAText('⚠️ '+(data.error||('Error '+resp.status)));
+      conversation.pop(); // drop the user msg so retry works cleanly
+      return;
+    }
+    conversation.push({role:'assistant',content:data.reply});
+    addPAText(data.reply);
+  }catch(e){
+    hideTyping();
+    addPAText('⚠️ Network error: '+e.message);
+    conversation.pop();
+  }
+}
+
+// Renders a Claude reply as plain text (textContent — XSS-safe).
+// .msg-text already has white-space:pre-wrap so newlines are preserved.
+function addPAText(text){
+  const d=document.createElement('div');d.className='msg pa';
+  const av=document.createElement('div');av.className='msg-av';av.textContent='✈️';
+  const bub=document.createElement('div');bub.className='msg-bub';
+  const txt=document.createElement('div');txt.className='msg-text';
+  txt.textContent=text;
+  bub.appendChild(txt);d.appendChild(av);d.appendChild(bub);
+  msgs().appendChild(d);scrollChat();
 }
 
 function addUser(t){const d=document.createElement('div');d.className='msg user';d.innerHTML=`<div class="msg-bub">${esc(t)}</div>`;msgs().appendChild(d);scrollChat();}
