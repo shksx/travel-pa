@@ -72,6 +72,10 @@ export async function onRequestPost(context) {
   const messages = clientMessages.map((m) => ({ role: m.role, content: m.content }));
   const system = buildSystemPrompt(prefs);
 
+  // Collect tool calls + results across the loop so the frontend can render
+  // structured data (flight cards, etc.) alongside Claude's text reply.
+  const toolCalls = [];
+
   for (let iter = 0; iter < MAX_TOOL_ITERATIONS; iter++) {
     const claudeResp = await callClaude({
       apiKey: env.ANTHROPIC_API_KEY,
@@ -91,7 +95,7 @@ export async function onRequestPost(context) {
 
     if (stop_reason !== "tool_use") {
       const textBlock = content.find((b) => b.type === "text");
-      return json({ reply: textBlock?.text ?? "" });
+      return json({ reply: textBlock?.text ?? "", tool_calls: toolCalls });
     }
 
     // Execute every tool_use block this turn requested, then feed results back.
@@ -99,6 +103,7 @@ export async function onRequestPost(context) {
     for (const block of content) {
       if (block.type !== "tool_use") continue;
       const result = await executeTool(block.name, block.input, env);
+      toolCalls.push({ tool: block.name, input: block.input, output: result });
       toolResultBlocks.push({
         type: "tool_result",
         tool_use_id: block.id,

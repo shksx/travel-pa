@@ -330,6 +330,53 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:17px;heigh
 /* Number input fix */
 input[type=number].p-inp::-webkit-outer-spin-button,input[type=number].p-inp::-webkit-inner-spin-button{display:none;}
 input[type=number].p-inp{-moz-appearance:textfield;}
+
+/* ═══ EMPTY STATES & WELCOME ═══ */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 24px;color:var(--muted);}
+.empty-icon{font-size:42px;margin-bottom:12px;opacity:.7;}
+.empty-title{font-size:14px;font-weight:600;color:var(--white);margin-bottom:6px;}
+.empty-desc{font-size:12px;line-height:1.55;max-width:280px;}
+.welcome-block{margin:18px 12px 0;padding:22px 18px;background:linear-gradient(135deg,#1a2a3f,#0d1520);border:1px solid var(--border2);border-radius:var(--radius);text-align:center;}
+.welcome-emoji{font-size:38px;margin-bottom:6px;}
+.welcome-title{font-size:18px;font-weight:700;margin-bottom:6px;}
+.welcome-desc{font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:14px;}
+.welcome-cta{background:var(--gold);color:#0b1117;font-weight:700;font-size:13px;padding:10px 22px;border:none;border-radius:22px;cursor:pointer;transition:transform .12s,opacity .15s;}
+.welcome-cta:hover{opacity:.92;}
+.welcome-cta:active{transform:scale(.97);}
+
+/* ═══ TRIPS HEADER ═══ */
+.trips-header{padding:18px 16px 4px;}
+.trips-title{font-size:20px;font-weight:700;}
+.trips-sub{font-size:12px;color:var(--muted);margin-top:3px;}
+
+/* ═══ SAVED TRIP CARDS (used on Trips tab + dashboard preview) ═══ */
+.trip-card{margin:10px 12px;padding:13px 14px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);}
+.trip-card.booked{border-color:rgba(46,204,113,.35);background:linear-gradient(180deg,rgba(46,204,113,.04),var(--card));}
+.trip-card-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;}
+.trip-card-route{font-size:14px;font-weight:700;}
+.trip-card-status{font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:3px 8px;border-radius:20px;flex-shrink:0;}
+.trip-card-status.researched{background:rgba(212,175,55,.15);color:var(--gold);border:1px solid var(--gold-border);}
+.trip-card-status.confirmed{background:rgba(46,204,113,.15);color:var(--green);border:1px solid rgba(46,204,113,.35);}
+.trip-card-meta{font-size:11.5px;color:var(--muted);line-height:1.7;margin-bottom:8px;}
+.trip-card-meta strong{color:var(--white);font-weight:600;}
+.trip-card-actions{display:flex;gap:6px;flex-wrap:wrap;}
+.trip-act-btn{font-size:10.5px;font-weight:600;padding:6px 12px;border-radius:16px;border:1px solid var(--border2);background:var(--bg3);color:var(--white);cursor:pointer;transition:all .15s;}
+.trip-act-btn:hover{border-color:var(--gold-border);}
+.trip-act-btn.primary{background:var(--gold);color:#0b1117;border-color:var(--gold);}
+.trip-act-btn.danger{color:var(--red);border-color:rgba(231,76,60,.3);}
+
+/* ═══ FLIGHT RESULT CARDS IN CHAT ═══ */
+.flight-card{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:11px 12px;margin-top:7px;}
+.flight-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:6px;}
+.flight-card-airline{font-size:12.5px;font-weight:600;color:var(--white);}
+.flight-card-price{font-size:15px;font-weight:700;color:var(--gold);white-space:nowrap;}
+.flight-card-segments{font-size:11px;color:var(--muted);line-height:1.7;margin-bottom:7px;}
+.flight-card-segments strong{color:var(--white);font-weight:600;}
+.flight-card-actions{display:flex;gap:6px;}
+.flight-card-actions button,.flight-card-actions a{font-size:10.5px;font-weight:600;padding:6px 12px;border-radius:16px;border:1px solid var(--gold-border);background:transparent;color:var(--gold);cursor:pointer;text-decoration:none;display:inline-block;transition:background .15s;}
+.flight-card-actions a:hover,.flight-card-actions button:hover{background:var(--gold-dim);}
+.flight-card-actions .save-flight{background:var(--gold);color:#0b1117;border-color:var(--gold);}
+.flight-card-actions .save-flight.saved{background:transparent;color:var(--green);border-color:rgba(46,204,113,.4);cursor:default;}
 </style>
 </head>
 <body>
@@ -345,62 +392,17 @@ input[type=number].p-inp{-moz-appearance:textfield;}
   <div class="hdr-dot"></div>
   <button class="hdr-bell" onclick="toggleNotifs()">
     <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-    <div class="badge-n" id="notif-count">5</div>
+    <div class="badge-n" id="notif-count" style="display:none;">0</div>
   </button>
 </div>
 
 <!-- ═══ NOTIFICATION PANEL ═══ -->
 <div class="notif-panel" id="notif-panel">
   <h3>Notifications</h3>
-  <div class="card" style="margin-bottom:8px;">
-    <div class="alert-card">
-      <div class="alert-icon ai-red">⚠️</div>
-      <div class="alert-body">
-        <div class="alert-title">No accommodation after May 18</div>
-        <div class="alert-desc">Your Airbnb in Da Nang ends May 18 but you don't fly out until May 22. Shall I search for 4 nights?</div>
-        <div class="alert-actions"><button class="alert-btn primary" onclick="toggleNotifs();navChat('Find accommodation in Da Nang for May 18-22')">Search now</button><button class="alert-btn secondary" onclick="dismissAlert(this)">Dismiss</button></div>
-      </div>
-    </div>
-  </div>
-  <div class="card" style="margin-bottom:8px;">
-    <div class="alert-card">
-      <div class="alert-icon ai-blue">🛂</div>
-      <div class="alert-body">
-        <div class="alert-title">Visa info: South Korea</div>
-        <div class="alert-desc">Australian passport holders get 90-day visa-free entry. No action needed. Your passport expires Dec 2028 — well within requirements.</div>
-        <div class="alert-time">Updated 2 hours ago</div>
-      </div>
-    </div>
-  </div>
-  <div class="card" style="margin-bottom:8px;">
-    <div class="alert-card">
-      <div class="alert-icon ai-orange">💱</div>
-      <div class="alert-body">
-        <div class="alert-title">KRW rate improved 3.2%</div>
-        <div class="alert-desc">AUD → KRW is at 892.4 — best rate in 30 days. Wise is offering the best rate vs. Revolut (891.1) and your bank (874.2).</div>
-        <div class="alert-actions"><button class="alert-btn secondary">View comparison</button></div>
-      </div>
-    </div>
-  </div>
-  <div class="card" style="margin-bottom:8px;">
-    <div class="alert-card">
-      <div class="alert-icon ai-green">📱</div>
-      <div class="alert-body">
-        <div class="alert-title">Recommended apps for Seoul</div>
-        <div class="alert-desc">Naver Map (navigation), KakaoTalk (messaging), T-money (transit card), Papago (translation). Shall I save these?</div>
-        <div class="alert-time">Preparing for your May 4 arrival</div>
-      </div>
-    </div>
-  </div>
-  <div class="card">
-    <div class="alert-card">
-      <div class="alert-icon ai-purple">🏠</div>
-      <div class="alert-body">
-        <div class="alert-title">New provider: Vio.com</div>
-        <div class="alert-desc">We've noticed Vio.com is offering 8-15% lower rates for accommodation in Seoul vs Booking.com. We'll incorporate it into searches. Note: no loyalty points.</div>
-        <div class="alert-time">Review based on 2,400+ peer ratings</div>
-      </div>
-    </div>
+  <div class="empty-state">
+    <div class="empty-icon">🔔</div>
+    <div class="empty-title">No notifications yet</div>
+    <div class="empty-desc">Proactive alerts about your trips will appear here once you start planning.</div>
   </div>
 </div>
 
@@ -409,125 +411,33 @@ input[type=number].p-inp{-moz-appearance:textfield;}
 
 <!-- ────── DASHBOARD ────── -->
 <div class="vw active" id="v-dash">
-  <!-- Trip banner -->
-  <div class="trip-banner">
-    <div class="tb-dest">🇰🇷 Seoul, South Korea</div>
-    <div class="tb-date">May 4 — May 15, 2025 &nbsp;·&nbsp; Solo trip</div>
-    <div class="tb-row">
-      <div class="tb-chip ok"><span class="ic">✈️</span> Flight booked</div>
-      <div class="tb-chip ok"><span class="ic">🏨</span> 6 nights booked</div>
-      <div class="tb-chip warn"><span class="ic">⚠️</span> 5 nights needed</div>
-      <div class="tb-chip"><span class="ic">🛂</span> Visa-free ✓</div>
-    </div>
+  <div class="welcome-block">
+    <div class="welcome-emoji">✈️</div>
+    <div class="welcome-title">Welcome to Travel PA</div>
+    <div class="welcome-desc">Your proactive personal travel assistant. Ask the chat to find flights, accommodation, or activities — anything you save will appear here and on your Trips tab.</div>
+    <button class="welcome-cta" onclick="switchTab('chat')">💬 Open chat</button>
   </div>
 
-  <!-- Proactive alerts -->
-  <div class="sec-h"><h3>🤖 Proactive Insights</h3><a href="#" onclick="switchTab('chat');return false;">Ask PA</a></div>
-  <div class="card" style="margin:0 12px;">
-    <div class="alert-card" onclick="navChat('What are my options if my flight to Seoul is delayed?')">
-      <div class="alert-icon ai-purple">🧠</div>
-      <div class="alert-body">
-        <div class="alert-title">Smart alert: Incheon arrival timing</div>
-        <div class="alert-desc">You land at ICN at 13:45. Last AREX Express to Seoul Station is 22:50 so you're well covered. However, if delayed >5h, I've pre-checked taxi options (~$65 AUD) and late buses.</div>
-        <div class="alert-time">Based on VJ862 flight data · 2% delay rate for this route</div>
-      </div>
-    </div>
-    <div class="alert-card" onclick="navChat('Find accommodation in Da Nang May 18-22')">
-      <div class="alert-icon ai-red">🏠</div>
-      <div class="alert-body">
-        <div class="alert-title">Accommodation gap detected</div>
-        <div class="alert-desc">Your calendar shows no accommodation May 18-22 in Da Nang. Based on your budget (~$178/night), I found 3 options. Want me to show them?</div>
-        <div class="alert-actions"><button class="alert-btn primary" onclick="navChat('Find accommodation in Seoul May 10-15')">Show options</button><button class="alert-btn secondary" onclick="dismissAlert(this)">I have plans</button></div>
-      </div>
-    </div>
-    <div class="alert-card">
-      <div class="alert-icon ai-orange">💱</div>
-      <div class="alert-body">
-        <div class="alert-title">FX opportunity: AUD → KRW up 3.2%</div>
-        <div class="alert-desc">Best rate in 30 days. Wise: 892.4 | Revolut: 891.1 | Bank: 874.2. Your Seoul trip is in 36 days.</div>
-        <div class="alert-actions"><button class="alert-btn secondary">Compare providers</button></div>
-      </div>
-    </div>
-    <div class="alert-card">
-      <div class="alert-icon ai-green">📋</div>
-      <div class="alert-body">
-        <div class="alert-title">Booking conflict detected</div>
-        <div class="alert-desc">Your new Seoul hotel check-in (May 4) overlaps with Da Nang Airbnb checkout (May 5). You may want to check out a day early or adjust Seoul arrival.</div>
-        <div class="alert-actions"><button class="alert-btn primary" onclick="navChat('Help me resolve the Seoul/Da Nang booking overlap on May 4-5')">Resolve</button><button class="alert-btn secondary" onclick="dismissAlert(this)">Dismiss</button></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- FX rates -->
-  <div class="sec-h"><h3>💱 Exchange Rates (AUD)</h3><a href="#">All rates</a></div>
-  <div class="fx-row">
-    <div class="fx-card"><div class="fx-pair">AUD → KRW</div><div class="fx-rate">892.4</div><div class="fx-change fx-up">▲ 3.2% (30d)</div></div>
-    <div class="fx-card"><div class="fx-pair">AUD → TWD</div><div class="fx-rate">21.34</div><div class="fx-change fx-up">▲ 1.1% (30d)</div></div>
-    <div class="fx-card"><div class="fx-pair">AUD → VND</div><div class="fx-rate">17,240</div><div class="fx-change fx-down">▼ 0.4% (30d)</div></div>
-    <div class="fx-card"><div class="fx-pair">AUD → JPY</div><div class="fx-rate">97.82</div><div class="fx-change fx-up">▲ 2.1% (30d)</div></div>
-  </div>
-
-  <!-- Quick actions -->
-  <div class="sec-h"><h3>Quick Actions</h3></div>
+  <div class="sec-h"><h3>Quick start</h3></div>
   <div class="qa-grid">
-    <div class="qa-item" onclick="navChat('Search flights from Da Nang')"><div class="qa-ic">✈️</div><div class="qa-label">Flights</div></div>
-    <div class="qa-item" onclick="navChat('Find hotels in Seoul')"><div class="qa-ic">🏨</div><div class="qa-label">Hotels</div></div>
-    <div class="qa-item" onclick="navChat('Car hire options in Seoul')"><div class="qa-ic">🚗</div><div class="qa-label">Car Hire</div></div>
-    <div class="qa-item" onclick="navChat('House sitting options Da Nang')"><div class="qa-ic">🏠</div><div class="qa-label">House-sit</div></div>
-    <div class="qa-item" onclick="navChat('Best restaurants near me')"><div class="qa-ic">🍽️</div><div class="qa-label">Dining</div></div>
-    <div class="qa-item" onclick="navChat('Grocery stores with gluten-free options')"><div class="qa-ic">🛒</div><div class="qa-label">Grocery</div></div>
-    <div class="qa-item" onclick="navChat('Things to do in Seoul based on my interests')"><div class="qa-ic">🎯</div><div class="qa-label">Activities</div></div>
-    <div class="qa-item" onclick="navChat('Airport transfer options for ICN')"><div class="qa-ic">🚌</div><div class="qa-label">Transfers</div></div>
+    <div class="qa-item" onclick="navChat('Find me flights from Sydney to Tokyo on 1 June 2026')"><div class="qa-ic">✈️</div><div class="qa-label">Flights</div></div>
+    <div class="qa-item" onclick="navChat('What can you help me with?')"><div class="qa-ic">💡</div><div class="qa-label">What you can do</div></div>
+    <div class="qa-item" onclick="switchTab('prof')"><div class="qa-ic">⚙️</div><div class="qa-label">Set preferences</div></div>
+    <div class="qa-item" onclick="switchTab('trips')"><div class="qa-ic">📅</div><div class="qa-label">My trips</div></div>
   </div>
 
-  <!-- Upcoming timeline mini -->
-  <div class="sec-h"><h3>📅 Coming Up</h3><a href="#" onclick="switchTab('trips');return false;">Full timeline</a></div>
-  <div class="tl-mini">
-    <div class="tl-item">
-      <div class="tl-date-col"><div class="tl-day">4</div><div class="tl-mon">May</div></div>
-      <div class="tl-content">
-        <div class="tl-title">✈️ Da Nang → Seoul (ICN)</div>
-        <div class="tl-detail">VietJet VJ862 · 06:15–13:45 · Direct</div>
-        <div class="tl-status confirmed">✓ Confirmed</div>
-      </div>
-    </div>
-    <div class="tl-item">
-      <div class="tl-date-col"><div class="tl-day">4</div><div class="tl-mon">May</div></div>
-      <div class="tl-content">
-        <div class="tl-title">🏨 Grand Hyatt Seoul check-in</div>
-        <div class="tl-detail">Itaewon-gu · 6 nights · $289/night</div>
-        <div class="tl-status confirmed">✓ Confirmed</div>
-      </div>
-    </div>
-    <div class="tl-item">
-      <div class="tl-date-col"><div class="tl-day">10</div><div class="tl-mon">May</div></div>
-      <div class="tl-content">
-        <div class="tl-title">⚠️ Accommodation needed</div>
-        <div class="tl-detail">May 10–15 in Seoul — no booking yet</div>
-        <div class="tl-status action">⚡ Action needed</div>
-      </div>
-    </div>
-    <div class="tl-item">
-      <div class="tl-date-col"><div class="tl-day">15</div><div class="tl-mon">May</div></div>
-      <div class="tl-content">
-        <div class="tl-title">✈️ Seoul → Da Nang (return)</div>
-        <div class="tl-detail">Searching for best options...</div>
-        <div class="tl-status pending">🔍 Researching</div>
-      </div>
-    </div>
-  </div>
+  <div class="sec-h"><h3>📅 Saved trips</h3><a href="#" onclick="switchTab('trips');return false;">View all</a></div>
+  <div id="dash-trips-preview"></div>
 </div>
 
 <!-- ────── CHAT ────── -->
 <div class="vw" id="v-chat">
   <div class="chat-msgs" id="chat-msgs"></div>
   <div class="chat-sug" id="chat-sug">
-    <button class="sug-chip" onclick="fillQ('Flights to Seoul before May 9')">✈️ Flights</button>
-    <button class="sug-chip" onclick="fillQ('Hotels in Seoul with AC')">🏨 Hotels</button>
-    <button class="sug-chip" onclick="fillQ('Car hire in Seoul for 5 days')">🚗 Car hire</button>
-    <button class="sug-chip" onclick="fillQ('Best restaurants in Da Nang tonight')">🍽️ Dining</button>
-    <button class="sug-chip" onclick="fillQ('Day trip from Seoul avoiding crowds')">🗺️ Day trip</button>
-    <button class="sug-chip" onclick="fillQ('Grocery stores with gluten-free near me')">🛒 Grocery</button>
+    <button class="sug-chip" onclick="fillQ('Find me flights from Sydney to Tokyo on 1 June 2026')">✈️ Flights to Tokyo</button>
+    <button class="sug-chip" onclick="fillQ('Cheapest direct flights from Melbourne to Bangkok next month')">✈️ Bangkok direct</button>
+    <button class="sug-chip" onclick="fillQ('Return flights from Sydney to London, leaving 15 May 2026 returning 1 June 2026')">✈️ Return London</button>
+    <button class="sug-chip" onclick="fillQ('What can you help me with?')">💡 What can you do?</button>
   </div>
   <div class="chat-bar">
     <textarea class="chat-inp" id="chat-inp" placeholder="Ask your Travel PA…" rows="1"></textarea>
@@ -537,156 +447,19 @@ input[type=number].p-inp{-moz-appearance:textfield;}
 
 <!-- ────── TRIPS ────── -->
 <div class="vw" id="v-trips">
-  <div class="trip-hero">
-    <div class="trip-hero-title">🇰🇷 Seoul Adventure 2025</div>
-    <div class="trip-hero-dates">May 4–15 · Solo · 11 nights</div>
-    <button class="trip-hero-share">📤 Share</button>
+  <div class="trips-header">
+    <div class="trips-title">My Trips</div>
+    <div class="trips-sub">Flights and bookings you've saved from chat.</div>
   </div>
-
-  <!-- Companions -->
-  <div class="sec-h"><h3>👥 Trip Companions</h3><a href="#" onclick="return false;">+ Add</a></div>
-  <div class="companion-row">
-    <div class="companion">
-      <div class="comp-av" style="background:linear-gradient(135deg,#D4AF37,#a88620);">M</div>
-      <div><div class="comp-name">Matt</div><div class="comp-role">Solo traveller</div></div>
-    </div>
-    <div class="companion" style="opacity:.5;border-style:dashed;">
-      <div class="comp-av" style="background:var(--bg4);font-size:16px;">+</div>
-      <div><div class="comp-name" style="color:var(--muted);">Add partner</div><div class="comp-role">Separate or joint itinerary</div></div>
-    </div>
-  </div>
-
-  <!-- Map placeholder -->
-  <div class="sec-h"><h3>🗺️ Route Map</h3><a href="#">Full screen</a></div>
-  <div class="map-box">
-    <div class="map-dots">
-      <div class="map-dot current" style="left:25%;top:65%;"></div>
-      <div class="map-dot" style="left:65%;top:25%;"></div>
-      <div class="map-dot" style="left:72%;top:40%;"></div>
-      <div class="map-line" style="left:26%;top:64%;width:180px;transform:rotate(-30deg);"></div>
-    </div>
-    <div class="map-content">
-      <div style="font-size:28px;margin-bottom:4px;">🗺️</div>
-      <div style="font-weight:600;font-size:13px;color:var(--white);">Da Nang → Seoul</div>
-      <div style="margin-top:2px;">Interactive map with your route & stops</div>
-      <div style="margin-top:6px;color:var(--gold);font-weight:600;font-size:11px;">📍 Live traffic & delay alerts enabled</div>
-    </div>
-  </div>
-
-  <!-- Full timeline -->
-  <div class="sec-h"><h3>📅 Full Timeline</h3></div>
-  <div class="tl-full">
-    <!-- Item 1 -->
-    <div class="tl-f-item">
-      <div class="tl-f-line"><div class="tl-f-dot done"></div><div class="tl-f-stem"></div></div>
-      <div class="tl-f-card">
-        <div class="tl-f-head"><div class="tl-f-title">✈️ Fly Da Nang → Seoul</div><span class="tl-f-tag bp-green">Booked</span></div>
-        <div class="tl-f-detail">May 4 · VietJet VJ862 · 06:15–13:45<br>Da Nang (DAD) → Incheon (ICN) · Direct · $187 AUD</div>
-        <div class="tl-f-smart">🧠 AREX Express from ICN to Seoul Station runs every 30 min. Last train 22:50. Your 13:45 arrival gives plenty of buffer. Pre-purchase T-money card at airport convenience store.</div>
-      </div>
-    </div>
-    <!-- Item 2 -->
-    <div class="tl-f-item">
-      <div class="tl-f-line"><div class="tl-f-dot done"></div><div class="tl-f-stem"></div></div>
-      <div class="tl-f-card">
-        <div class="tl-f-head"><div class="tl-f-title">🏨 Grand Hyatt Seoul</div><span class="tl-f-tag bp-green">Booked</span></div>
-        <div class="tl-f-detail">May 4–10 · 6 nights · $289/night · Itaewon-gu<br>✅ AC ✅ Gym ✅ WiFi · Booking.com ref: BK-8827341</div>
-      </div>
-    </div>
-    <!-- Item 3 -->
-    <div class="tl-f-item">
-      <div class="tl-f-line"><div class="tl-f-dot upcoming"></div><div class="tl-f-stem"></div></div>
-      <div class="tl-f-card">
-        <div class="tl-f-head"><div class="tl-f-title">🗼 Suggested: Gyeongbokgung & Bukchon</div><span class="tl-f-tag bp-blue">Day Trip</span></div>
-        <div class="tl-f-detail">May 5 · Cultural district · Best visited 9-11am before crowds<br>Crowd level: 🟢 Low (weekday) · Walk: 4.2km loop</div>
-        <div class="tl-f-smart">🧠 I'd suggest heading east → north → west to avoid tour group patterns. Bukchon Hanok Village is quietest before 10am. Nearby lunch: Tosokchon Samgyetang (ginseng chicken soup, 4.7★).</div>
-      </div>
-    </div>
-    <!-- Item 4 -->
-    <div class="tl-f-item">
-      <div class="tl-f-line"><div class="tl-f-dot alert-dot"></div><div class="tl-f-stem"></div></div>
-      <div class="tl-f-card" style="border-color:rgba(230,126,34,.25);">
-        <div class="tl-f-head"><div class="tl-f-title">⚠️ Accommodation needed</div><span class="tl-f-tag bp-orange">Action</span></div>
-        <div class="tl-f-detail">May 10–15 · 5 nights in Seoul · No booking yet<br>Budget estimate: ~$890–$1,560 AUD total</div>
-        <div class="tl-f-smart">🧠 Based on your preferences (4★+ with AC), I've found Lotte City Myeongdong at $178/night as best value, or extend at Grand Hyatt ($289/night, you'd get a returning guest rate). Shall I book?</div>
-      </div>
-    </div>
-    <!-- Item 5 -->
-    <div class="tl-f-item">
-      <div class="tl-f-line"><div class="tl-f-dot upcoming"></div><div class="tl-f-stem"></div></div>
-      <div class="tl-f-card">
-        <div class="tl-f-head"><div class="tl-f-title">✈️ Return flight Seoul → Da Nang</div><span class="tl-f-tag bp-gold">Searching</span></div>
-        <div class="tl-f-detail">May 15 · Monitoring prices across 6 airlines<br>Current best: Korean Air $224 AUD · VietJet $187 AUD</div>
-        <div class="tl-f-smart">🧠 Prices have dropped 12% in the last week. Based on historical patterns, I'd recommend booking within 5 days. VietJet has free date changes on this route.</div>
-      </div>
-    </div>
-    <!-- Item 6 -->
-    <div class="tl-f-item">
-      <div class="tl-f-line"><div class="tl-f-dot upcoming"></div><div class="tl-f-stem" style="background:transparent;"></div></div>
-      <div class="tl-f-card">
-        <div class="tl-f-head"><div class="tl-f-title">🏠 Return to Da Nang base</div><span class="tl-f-tag bp-muted">Planned</span></div>
-        <div class="tl-f-detail">May 15 onward · Your Da Nang Airbnb resumes<br>House-sitting assignment: Looking after Luna 🐱 from May 20</div>
-      </div>
-    </div>
-  </div>
+  <div id="trips-list"></div>
 </div>
 
 <!-- ────── PROFILE ────── -->
 <div class="vw" id="v-prof">
   <div class="prof-header">
-    <div class="prof-av">M</div>
-    <div class="prof-name">Matt</div>
-    <div class="prof-email">matthewargyle.1@gmail.com</div>
-    <div class="prof-stats">
-      <div class="prof-stat"><div class="prof-stat-n">12</div><div class="prof-stat-l">Trips</div></div>
-      <div class="prof-stat"><div class="prof-stat-n">8</div><div class="prof-stat-l">Countries</div></div>
-      <div class="prof-stat"><div class="prof-stat-n">$4.2k</div><div class="prof-stat-l">Saved</div></div>
-    </div>
-  </div>
-
-  <!-- Connected Accounts -->
-  <div class="p-sec">
-    <div class="p-sec-h">🔗 Connected Accounts</div>
-    <div class="acct-row">
-      <div class="acct-icon" style="background:rgba(52,152,219,.15);">📧</div>
-      <div class="acct-info"><div class="acct-name">Gmail</div><div class="acct-status connected">● Connected · Pulling booking confirmations</div></div>
-      <button class="acct-btn conn">Active</button>
-    </div>
-    <div class="acct-row">
-      <div class="acct-icon" style="background:rgba(46,204,113,.15);">📅</div>
-      <div class="acct-info"><div class="acct-name">Google Calendar</div><div class="acct-status connected">● Connected · Monitoring travel dates</div></div>
-      <button class="acct-btn conn">Active</button>
-    </div>
-    <div class="acct-row">
-      <div class="acct-icon" style="background:rgba(230,126,34,.15);">🏨</div>
-      <div class="acct-info"><div class="acct-name">Booking.com</div><div class="acct-status connected">● Connected · 2 active bookings</div></div>
-      <button class="acct-btn conn">Active</button>
-    </div>
-    <div class="acct-row">
-      <div class="acct-icon" style="background:rgba(231,76,60,.15);">🏠</div>
-      <div class="acct-info"><div class="acct-name">Airbnb</div><div class="acct-status connected">● Connected · Sync'd</div></div>
-      <button class="acct-btn conn">Active</button>
-    </div>
-    <div class="acct-row">
-      <div class="acct-icon" style="background:rgba(155,89,182,.15);">✈️</div>
-      <div class="acct-info"><div class="acct-name">Skyscanner</div><div class="acct-status disconnected">○ Not connected</div></div>
-      <button class="acct-btn">Connect</button>
-    </div>
-    <div class="acct-row">
-      <div class="acct-icon" style="background:rgba(212,175,55,.15);">💳</div>
-      <div class="acct-info"><div class="acct-name">Wise</div><div class="acct-status connected">● Connected · FX rate monitoring</div></div>
-      <button class="acct-btn conn">Active</button>
-    </div>
-    <div class="acct-row">
-      <div class="acct-icon" style="background:rgba(52,152,219,.15);">🚗</div>
-      <div class="acct-info"><div class="acct-name">RentalCars.com</div><div class="acct-status disconnected">○ Not connected</div></div>
-      <button class="acct-btn">Connect</button>
-    </div>
-    <div class="acct-row">
-      <div class="acct-icon" style="background:rgba(46,204,113,.15);">🏡</div>
-      <div class="acct-info"><div class="acct-name">TrustedHousesitters</div><div class="acct-status connected">● Connected · 1 upcoming sit</div></div>
-      <button class="acct-btn conn">Active</button>
-    </div>
+    <div class="prof-av">👤</div>
+    <div class="prof-name">New traveller</div>
+    <div class="prof-email" style="color:var(--muted);font-size:11px;">Set your preferences below — they'll be used to personalise every search.</div>
   </div>
 
   <!-- Trip Mode -->
@@ -712,7 +485,7 @@ input[type=number].p-inp{-moz-appearance:textfield;}
     <div class="p-row"><div><div class="p-label">Direct flights only</div><div class="p-sub">Unless saving exceeds threshold</div></div><button class="tog on" data-p="direct" onclick="togPref(this)"></button></div>
     <div class="p-row col"><div class="p-label">Layover exception ($AUD saving)</div><input type="number" class="p-inp" data-p="layover" value="300"></div>
     <div class="p-row"><div class="p-label">No overnight flights</div><button class="tog on" data-p="overnight" onclick="togPref(this)"></button></div>
-    <div class="p-row col"><div class="p-label">Preferred airlines</div><input class="p-inp" data-p="airlines" value="Singapore Airlines, Thai Airways"></div>
+    <div class="p-row col"><div class="p-label">Preferred airlines</div><input class="p-inp" data-p="airlines" placeholder="e.g. Singapore Airlines, Qantas"></div>
     <div class="p-row col"><div class="p-label">Seat preference</div><div class="p-radios" data-pg="seat"><div class="p-radio" onclick="selRadio(this)">Aisle</div><div class="p-radio sel" onclick="selRadio(this)">Window</div><div class="p-radio" onclick="selRadio(this)">No pref</div></div></div>
     <div class="p-row col"><div class="p-label">Cabin class</div><div class="p-radios" data-pg="cabin"><div class="p-radio sel" onclick="selRadio(this)">Economy</div><div class="p-radio" onclick="selRadio(this)">Prem Econ</div><div class="p-radio" onclick="selRadio(this)">Business</div></div></div>
   </div>
@@ -724,7 +497,7 @@ input[type=number].p-inp{-moz-appearance:textfield;}
     <div class="p-row col"><div class="p-label">Minimum star rating</div><div class="p-slider"><span class="p-slider-val" id="star-v">4</span><input type="range" min="1" max="5" value="4" oninput="document.getElementById('star-v').textContent=this.value"><span style="font-size:11px;color:var(--muted);">⭐⭐⭐⭐⭐</span></div></div>
     <div class="p-row"><div class="p-label">Must have gym</div><button class="tog" data-p="gym" onclick="togPref(this)"></button></div>
     <div class="p-row"><div class="p-label">Must have pool</div><button class="tog" data-p="pool" onclick="togPref(this)"></button></div>
-    <div class="p-row col"><div class="p-label">Preferred platforms</div><input class="p-inp" data-p="platforms" value="Booking.com, Airbnb, Agoda"></div>
+    <div class="p-row col"><div class="p-label">Preferred platforms</div><input class="p-inp" data-p="platforms" placeholder="e.g. Booking.com, Airbnb, Agoda"></div>
     <div class="p-row col"><div class="p-label">Max nightly budget (AUD)</div><input type="number" class="p-inp" data-p="hotel-budget" placeholder="e.g. 400"></div>
     <div class="p-row"><div><div class="p-label">Include house-sitting</div><div class="p-sub">Search TrustedHousesitters</div></div><button class="tog on" data-p="housesit" onclick="togPref(this)"></button></div>
   </div>
@@ -732,7 +505,7 @@ input[type=number].p-inp{-moz-appearance:textfield;}
   <!-- Dining & Grocery -->
   <div class="p-sec">
     <div class="p-sec-h">🍽️ Dining & Grocery</div>
-    <div class="p-row col"><div class="p-label">Cuisine preferences</div><div class="p-chips" data-pg="cuisine"><div class="p-chip sel" onclick="togChip(this)">Japanese</div><div class="p-chip sel" onclick="togChip(this)">Korean</div><div class="p-chip" onclick="togChip(this)">Thai</div><div class="p-chip" onclick="togChip(this)">Italian</div><div class="p-chip sel" onclick="togChip(this)">Seafood</div><div class="p-chip" onclick="togChip(this)">Local</div><div class="p-chip" onclick="togChip(this)">Vegetarian</div></div></div>
+    <div class="p-row col"><div class="p-label">Cuisine preferences</div><div class="p-chips" data-pg="cuisine"><div class="p-chip" onclick="togChip(this)">Japanese</div><div class="p-chip" onclick="togChip(this)">Korean</div><div class="p-chip" onclick="togChip(this)">Thai</div><div class="p-chip" onclick="togChip(this)">Italian</div><div class="p-chip" onclick="togChip(this)">Seafood</div><div class="p-chip" onclick="togChip(this)">Local</div><div class="p-chip" onclick="togChip(this)">Vegetarian</div></div></div>
     <div class="p-row col"><div class="p-label">Dietary requirements</div><input class="p-inp" data-p="dietary" placeholder="e.g. Gluten-free, no pork"></div>
     <div class="p-row col"><div class="p-label">Budget per meal</div><select class="p-select" data-p="meal-budget"><option>Under $20 AUD</option><option>$20–$50 AUD</option><option selected>$50–$100 AUD</option><option>$100–$200 AUD</option><option>No limit</option></select></div>
     <div class="p-row"><div><div class="p-label">Grocery alerts</div><div class="p-sub">Find stores matching dietary needs</div></div><button class="tog on" data-p="grocery-alerts" onclick="togPref(this)"></button></div>
@@ -741,7 +514,7 @@ input[type=number].p-inp{-moz-appearance:textfield;}
   <!-- Activities -->
   <div class="p-sec">
     <div class="p-sec-h">🎯 Activities & Interests</div>
-    <div class="p-row col"><div class="p-label">Activity types</div><div class="p-chips" data-pg="activities"><div class="p-chip sel" onclick="togChip(this)">Cultural</div><div class="p-chip" onclick="togChip(this)">Outdoor</div><div class="p-chip" onclick="togChip(this)">Nightlife</div><div class="p-chip sel" onclick="togChip(this)">Food Tours</div><div class="p-chip sel" onclick="togChip(this)">Shopping</div><div class="p-chip" onclick="togChip(this)">Wellness</div><div class="p-chip" onclick="togChip(this)">Museums</div><div class="p-chip sel" onclick="togChip(this)">Markets</div></div></div>
+    <div class="p-row col"><div class="p-label">Activity types</div><div class="p-chips" data-pg="activities"><div class="p-chip" onclick="togChip(this)">Cultural</div><div class="p-chip" onclick="togChip(this)">Outdoor</div><div class="p-chip" onclick="togChip(this)">Nightlife</div><div class="p-chip" onclick="togChip(this)">Food Tours</div><div class="p-chip" onclick="togChip(this)">Shopping</div><div class="p-chip" onclick="togChip(this)">Wellness</div><div class="p-chip" onclick="togChip(this)">Museums</div><div class="p-chip" onclick="togChip(this)">Markets</div></div></div>
     <div class="p-row"><div><div class="p-label">Avoid crowds</div><div class="p-sub">Prefer off-peak times & routes</div></div><button class="tog on" data-p="crowds" onclick="togPref(this)"></button></div>
     <div class="p-row"><div><div class="p-label">Day trip optimizer</div><div class="p-sub">Smart routing to minimize travel time</div></div><button class="tog on" data-p="daytrip" onclick="togPref(this)"></button></div>
   </div>
@@ -758,8 +531,8 @@ input[type=number].p-inp{-moz-appearance:textfield;}
   <!-- Location & Currency -->
   <div class="p-sec">
     <div class="p-sec-h">📍 Location & Currency</div>
-    <div class="p-row col"><div class="p-label">Current base city</div><input class="p-inp" data-p="base" value="Da Nang, Vietnam"></div>
-    <div class="p-row col"><div class="p-label">Home airport</div><input class="p-inp" data-p="airport" value="DAD – Da Nang International"></div>
+    <div class="p-row col"><div class="p-label">Current base city</div><input class="p-inp" data-p="base" placeholder="e.g. Sydney, Australia"></div>
+    <div class="p-row col"><div class="p-label">Home airport</div><input class="p-inp" data-p="airport" placeholder="e.g. SYD – Sydney Kingsford Smith"></div>
     <div class="p-row col"><div class="p-label">Home currency</div><input class="p-inp" data-p="currency" value="AUD"></div>
     <div class="p-row"><div><div class="p-label">FX rate monitoring</div><div class="p-sub">Alert when rates are favourable</div></div><button class="tog on" data-p="fx-alerts" onclick="togPref(this)"></button></div>
   </div>
@@ -817,6 +590,7 @@ function switchTab(t){
   document.getElementById('hdr-sub').textContent=tabLabels[t];
   curTab=t;
   if(t==='chat')setTimeout(()=>scrollChat(),50);
+  if(t==='trips'||t==='dash')renderTrips();
   // close notif panel
   document.getElementById('notif-panel').classList.remove('open');
 }
@@ -948,7 +722,7 @@ async function send(){
       return;
     }
     conversation.push({role:'assistant',content:data.reply});
-    addPAText(data.reply);
+    addPAReply(data.reply,data.tool_calls||[]);
   }catch(e){
     hideTyping();
     addPAText('⚠️ Network error: '+e.message);
@@ -956,9 +730,20 @@ async function send(){
   }
 }
 
+// Render a PA reply: text bubble + any structured tool result cards (e.g. flights).
+function addPAReply(text,toolCalls){
+  addPAText(text);
+  for(const call of toolCalls){
+    if(call.tool==='search_flights'&&call.output&&!call.output.error&&Array.isArray(call.output.offers)){
+      renderFlightCards(call.input,call.output);
+    }
+  }
+}
+
 // Renders a Claude reply as plain text (textContent — XSS-safe).
 // .msg-text already has white-space:pre-wrap so newlines are preserved.
 function addPAText(text){
+  if(!text)return;
   const d=document.createElement('div');d.className='msg pa';
   const av=document.createElement('div');av.className='msg-av';av.textContent='✈️';
   const bub=document.createElement('div');bub.className='msg-bub';
@@ -966,6 +751,198 @@ function addPAText(text){
   txt.textContent=text;
   bub.appendChild(txt);d.appendChild(av);d.appendChild(bub);
   msgs().appendChild(d);scrollChat();
+}
+
+// Render flight result cards from a search_flights tool call.
+// Each card has airline + segments + price + Book/Save buttons.
+function renderFlightCards(input,output){
+  const wrap=document.createElement('div');wrap.className='msg pa';
+  const av=document.createElement('div');av.className='msg-av';av.textContent='🔎';
+  const bub=document.createElement('div');bub.className='msg-bub';
+  const head=document.createElement('div');head.className='msg-text';
+  head.style.fontSize='11.5px';head.style.color='var(--muted)';head.style.marginBottom='3px';
+  head.textContent=`${input.origin} → ${input.destination} · ${input.departure_date}${input.return_date?' → '+input.return_date:''} · ${output.count} result${output.count===1?'':'s'}`;
+  bub.appendChild(head);
+
+  if(output.offers.length===0){
+    const empty=document.createElement('div');empty.className='msg-text';
+    empty.style.fontSize='12px';empty.style.color='var(--muted)';
+    empty.textContent='No flights found for that route and date.';
+    bub.appendChild(empty);
+  }
+
+  output.offers.forEach((offer,idx)=>{
+    const card=document.createElement('div');card.className='flight-card';
+
+    // Airlines + price row
+    const top=document.createElement('div');top.className='flight-card-top';
+    const airlines=document.createElement('div');airlines.className='flight-card-airline';
+    const carriers=[...new Set((offer.segments||[]).map(s=>s.airline).filter(Boolean))];
+    airlines.textContent=carriers.join(' / ')||'Flight';
+    const price=document.createElement('div');price.className='flight-card-price';
+    price.textContent=offer.price||'';
+    top.appendChild(airlines);top.appendChild(price);
+    card.appendChild(top);
+
+    // Segments
+    const segs=document.createElement('div');segs.className='flight-card-segments';
+    const lines=(offer.segments||[]).map(s=>{
+      const dep=fmtTime(s.depart);
+      const arr=fmtTime(s.arrive);
+      return `<strong>${s.from}</strong> ${dep} → <strong>${s.to}</strong> ${arr} · ${s.flight_number||''}`;
+    });
+    const stops=offer.layovers&&offer.layovers.length?`${offer.layovers.length} stop${offer.layovers.length===1?'':'s'}`:'Direct';
+    const totalDur=offer.total_duration_min?`${Math.floor(offer.total_duration_min/60)}h ${offer.total_duration_min%60}m`:'';
+    segs.innerHTML=lines.join('<br>')+`<br>${stops}${totalDur?' · '+totalDur:''}`;
+    card.appendChild(segs);
+
+    // Actions
+    const acts=document.createElement('div');acts.className='flight-card-actions';
+    const saveBtn=document.createElement('button');saveBtn.className='save-flight';saveBtn.textContent='💾 Save to trips';
+    saveBtn.onclick=()=>{
+      saveTripFromFlight(input,offer);
+      saveBtn.classList.add('saved');saveBtn.textContent='✓ Saved';saveBtn.disabled=true;
+      showToast('Saved to trips');
+    };
+    acts.appendChild(saveBtn);
+    // No deep_link from SearchAPI, so use a Google Flights search URL fallback
+    const link=document.createElement('a');
+    link.href=googleFlightsLink(input);
+    link.target='_blank';link.rel='noopener noreferrer';
+    link.textContent='Open in Google Flights ↗';
+    acts.appendChild(link);
+    card.appendChild(acts);
+
+    bub.appendChild(card);
+  });
+
+  wrap.appendChild(av);wrap.appendChild(bub);
+  msgs().appendChild(wrap);scrollChat();
+}
+
+function fmtTime(iso){
+  if(!iso)return'';
+  // ISO datetime → short HH:MM 24h
+  const m=iso.match(/T(\d{2}:\d{2})/);
+  return m?m[1]:iso;
+}
+
+function googleFlightsLink(input){
+  const out=input.departure_date,ret=input.return_date||'';
+  return `https://www.google.com/travel/flights?q=Flights%20from%20${input.origin}%20to%20${input.destination}%20on%20${out}${ret?'%20returning%20'+ret:''}`;
+}
+
+function showToast(text){
+  const t=document.getElementById('toast');
+  if(!t)return;
+  t.textContent='✅ '+text;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+// ═══ TRIPS STORAGE & RENDERING ═══
+const TRIPS_KEY='tpa3_trips';
+
+function getTrips(){
+  try{return JSON.parse(localStorage.getItem(TRIPS_KEY)||'[]');}catch(e){return [];}
+}
+function setTrips(t){localStorage.setItem(TRIPS_KEY,JSON.stringify(t));}
+
+function saveTripFromFlight(input,offer){
+  const trips=getTrips();
+  const id='t_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
+  trips.unshift({
+    id,
+    type:'flight',
+    status:'researched', // researched | confirmed
+    saved_at:new Date().toISOString(),
+    origin:input.origin,
+    destination:input.destination,
+    departure_date:input.departure_date,
+    return_date:input.return_date||null,
+    price:offer.price,
+    segments:offer.segments||[],
+    total_duration_min:offer.total_duration_min,
+    layovers:offer.layovers||[],
+    booking_url:googleFlightsLink(input)
+  });
+  setTrips(trips);
+  renderTrips();
+}
+
+function deleteTrip(id){
+  if(!confirm('Remove this trip from your list?'))return;
+  setTrips(getTrips().filter(t=>t.id!==id));
+  renderTrips();
+}
+
+function toggleBooked(id){
+  const trips=getTrips();
+  const t=trips.find(x=>x.id===id);
+  if(!t)return;
+  t.status=t.status==='confirmed'?'researched':'confirmed';
+  if(t.status==='confirmed')t.booked_at=new Date().toISOString();
+  setTrips(trips);
+  renderTrips();
+}
+
+function renderTrips(){
+  const trips=getTrips();
+  const fullList=document.getElementById('trips-list');
+  const dashPreview=document.getElementById('dash-trips-preview');
+
+  if(fullList){
+    fullList.innerHTML='';
+    if(trips.length===0){
+      fullList.innerHTML=`<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-title">No trips saved yet</div><div class="empty-desc">Use the Chat tab to find flights, then tap "Save to trips" on any result to add it here.</div></div>`;
+    }else{
+      trips.forEach(t=>fullList.appendChild(renderTripCard(t,true)));
+    }
+  }
+
+  if(dashPreview){
+    dashPreview.innerHTML='';
+    if(trips.length===0){
+      dashPreview.innerHTML=`<div class="empty-state" style="padding:20px 24px;"><div class="empty-desc">No saved trips yet. Try searching for flights in the chat.</div></div>`;
+    }else{
+      trips.slice(0,3).forEach(t=>dashPreview.appendChild(renderTripCard(t,false)));
+    }
+  }
+}
+
+function renderTripCard(t,withActions){
+  const card=document.createElement('div');
+  card.className='trip-card'+(t.status==='confirmed'?' booked':'');
+
+  const head=document.createElement('div');head.className='trip-card-head';
+  const route=document.createElement('div');route.className='trip-card-route';
+  route.textContent=`✈️ ${t.origin} → ${t.destination}`+(t.return_date?' (return)':'');
+  const status=document.createElement('div');status.className='trip-card-status '+t.status;
+  status.textContent=t.status==='confirmed'?'✓ Booked':'Researched';
+  head.appendChild(route);head.appendChild(status);
+  card.appendChild(head);
+
+  const meta=document.createElement('div');meta.className='trip-card-meta';
+  const carriers=[...new Set((t.segments||[]).map(s=>s.airline).filter(Boolean))].join(' / ');
+  const stops=t.layovers&&t.layovers.length?`${t.layovers.length} stop${t.layovers.length===1?'':'s'}`:'Direct';
+  const dur=t.total_duration_min?`${Math.floor(t.total_duration_min/60)}h ${t.total_duration_min%60}m`:'';
+  meta.innerHTML=`<strong>${t.departure_date}</strong>${t.return_date?' → <strong>'+t.return_date+'</strong>':''}<br>${carriers||'—'} · ${stops}${dur?' · '+dur:''} · <strong>${t.price||''}</strong>`;
+  card.appendChild(meta);
+
+  if(withActions){
+    const acts=document.createElement('div');acts.className='trip-card-actions';
+    const a=document.createElement('a');a.href=t.booking_url||'#';a.target='_blank';a.rel='noopener noreferrer';a.className='trip-act-btn primary';a.textContent='Book ↗';
+    acts.appendChild(a);
+    const tog=document.createElement('button');tog.className='trip-act-btn';tog.textContent=t.status==='confirmed'?'Mark as researched':'Mark as booked';
+    tog.onclick=()=>toggleBooked(t.id);
+    acts.appendChild(tog);
+    const del=document.createElement('button');del.className='trip-act-btn danger';del.textContent='Remove';
+    del.onclick=()=>deleteTrip(t.id);
+    acts.appendChild(del);
+    card.appendChild(acts);
+  }
+
+  return card;
 }
 
 function addUser(t){const d=document.createElement('div');d.className='msg user';d.innerHTML=`<div class="msg-bub">${esc(t)}</div>`;msgs().appendChild(d);scrollChat();}
@@ -976,145 +953,16 @@ function hideTyping(){typing=false;if(typEl){typEl.remove();typEl=null;}}
 function scrollChat(){const m=msgs();setTimeout(()=>{m.scrollTop=m.scrollHeight;},50);}
 function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
-function addPA(q){
-  const l=q.toLowerCase();let h='';
-  if(/flight|airfare|south korea|taiwan|seoul|taipei|may 9|before may|fly/.test(l))h=rFlights();
-  else if(/hotel|accommodation|where to stay|lodg|accomod|airbnb|book.*room/.test(l))h=rHotels();
-  else if(/car\s*hire|car\s*rent|rental\s*car/.test(l))h=rCar();
-  else if(/house.?sit|trusted.?house|pet.?sit/.test(l))h=rHouseSit();
-  else if(/restaurant|food|eat|dinner|lunch|dining|hungry/.test(l))h=rDining();
-  else if(/grocer|supermarket|gluten|dietary|health\s*food/.test(l))h=rGrocery();
-  else if(/things?\s*to\s*do|activit|what.*do|sightse|interest|day\s*trip|crowd/.test(l))h=rActivities();
-  else if(/transfer|airport.*transport|train|bus|arex|taxi/.test(l))h=rTransfer();
-  else if(/visa|passport|entry\s*req/.test(l))h=rVisa();
-  else if(/exchange|forex|fx|currency|wise|revolut/.test(l))h=rFX();
-  else if(/delay|traffic|late|option/.test(l))h=rDelay();
-  else h=rFallback(q);
-
-  const d=document.createElement('div');d.className='msg pa';
-  d.innerHTML=`<div class="msg-av">✈️</div><div class="msg-bub">${h}</div>`;
-  msgs().appendChild(d);scrollChat();
-}
-
-/* ── RESPONSE TEMPLATES ── */
-function rFlights(){return `<div class="msg-text">✈️ Found <strong>3 direct options</strong> from Da Nang before May 9:</div>
-<div class="result-cards">
-<div class="result-card"><span class="badge-pill bp-green">Best Value</span><div class="card-route">🇰🇷 Da Nang → Seoul (ICN)</div><div class="card-detail">VietJet Air · VJ862 · May 4<br>06:15 → 13:45 · 4h 30m · DIRECT</div><div class="card-footer"><div class="card-price">$187 AUD</div><button class="vdb">Book</button></div></div>
-<div class="result-card"><span class="badge-pill bp-gold">Recommended</span><div class="card-route">🇹🇼 Da Nang → Taipei (TPE)</div><div class="card-detail">China Airlines · CI772 · May 7<br>09:20 → 13:55 · 3h 35m · DIRECT</div><div class="card-footer"><div class="card-price">$224 AUD</div><button class="vdb">Book</button></div></div>
-<div class="result-card"><span class="badge-pill bp-muted">Also Available</span><div class="card-route">🇰🇷 Da Nang → Seoul (ICN)</div><div class="card-detail">Korean Air · KE686 · May 6<br>14:30 → 22:05 · 4h 35m · DIRECT</div><div class="card-footer"><div class="card-price">$251 AUD</div><button class="vdb">Book</button></div></div>
-</div>
-<div class="applied-prefs">⚡ Direct flights only ✓ · No overnight ✓ · Searched: Skyscanner, Google Flights, Kiwi</div>
-<div class="smart-insight">🧠 <strong>Loyalty note:</strong> Korean Air earns SkyTeam miles. VietJet is cheapest but no alliance points. Your history shows you usually pick best value — VJ862 saves $64 vs Korean Air.</div>`;}
-
-function rHotels(){return `<div class="msg-text">🏨 Found options matching your preferences:</div>
-<div class="result-cards">
-<div class="result-card"><span class="badge-pill bp-green">Best Match</span><div class="card-route">Grand Hyatt Seoul</div><div class="stars">⭐⭐⭐⭐⭐</div><div class="card-detail">Itaewon-gu · City views</div><div class="amenities">✅ AC ✅ Gym ✅ Free WiFi</div><div class="card-footer"><div class="card-price">$289/night</div><button class="vdb">Book</button></div></div>
-<div class="result-card"><span class="badge-pill bp-gold">New: Vio.com</span><div class="card-route">Signiel Seoul</div><div class="stars">⭐⭐⭐⭐⭐</div><div class="card-detail">Songpa-gu · Lotte World Tower</div><div class="amenities">✅ AC ✅ Pool ✅ Panoramic views</div><div class="card-footer"><div class="card-price">$279/night <span style="font-size:10px;color:var(--green);">(-$33 via Vio)</span></div><button class="vdb">Book</button></div></div>
-<div class="result-card"><span class="badge-pill bp-blue">Great Value</span><div class="card-route">Lotte City Hotel Myeongdong</div><div class="stars">⭐⭐⭐⭐</div><div class="card-detail">Myeongdong · Prime shopping</div><div class="amenities">✅ AC ✅ Free WiFi ✅ Breakfast</div><div class="card-footer"><div class="card-price">$178/night</div><button class="vdb">Book</button></div></div>
-</div>
-<div class="applied-prefs">🎯 AC required ✓ · Min 4-star ✓ · Searched: Booking.com, Airbnb, Agoda, Vio.com</div>
-<div class="smart-insight">🧠 <strong>Platform review:</strong> Vio.com is 8-15% cheaper for Seoul hotels based on 2,400+ peer reviews. No loyalty points though. Booking.com offers free cancellation on all 3 options.</div>`;}
-
-function rCar(){return `<div class="msg-text">🚗 Car hire options in <strong>Seoul</strong> (5 days):</div>
-<div class="result-cards">
-<div class="result-card"><span class="badge-pill bp-green">Best Value</span><div class="card-route">Hyundai Tucson or similar</div><div class="card-detail">Lotte Rent-a-Car · Pick up: ICN Airport<br>Full insurance · Unlimited km · Auto</div><div class="card-footer"><div class="card-price">$42 AUD/day</div><button class="vdb">Book</button></div></div>
-<div class="result-card"><span class="badge-pill bp-gold">Recommended</span><div class="card-route">Kia Sportage or similar</div><div class="card-detail">SK Rent-a-Car · Pick up: ICN Airport<br>Full insurance · GPS included · Auto</div><div class="card-footer"><div class="card-price">$48 AUD/day</div><button class="vdb">Book</button></div></div>
-</div>
-<div class="smart-insight">🧠 <strong>Note:</strong> Seoul has excellent public transport (KTX, subway, buses). Based on your cultural/shopping interests, you likely won't need a car in central Seoul. A car is great for day trips to DMZ or Nami Island though. International driving permit required.</div>`;}
-
-function rHouseSit(){return `<div class="msg-text">🏠 House-sitting options near your planned destinations:</div>
-<div class="result-cards">
-<div class="result-card"><span class="badge-pill bp-green">Great Match</span><div class="card-route">Seoul, Mapo-gu — 2 cats 🐱🐱</div><div class="card-detail">May 8–15 · 1BR apartment · Central location<br>Host rating: ⭐ 4.9 · 12 reviews</div><div class="amenities">✅ AC ✅ WiFi ✅ Washing machine ✅ Near Line 6</div><div class="card-footer"><div class="card-price">Free (house-sit)</div><button class="vdb">Apply</button></div></div>
-<div class="result-card"><span class="badge-pill bp-blue">Available</span><div class="card-route">Seoul, Gangnam — 1 dog 🐕</div><div class="card-detail">May 6–20 · 2BR apartment · Upscale area<br>Host rating: ⭐ 4.7 · 8 reviews</div><div class="amenities">✅ AC ✅ WiFi ✅ Gym in building</div><div class="card-footer"><div class="card-price">Free (house-sit)</div><button class="vdb">Apply</button></div></div>
-</div>
-<div class="applied-prefs">🔍 Source: TrustedHousesitters · Filtered: AC required ✓ · Seoul area ✓</div>
-<div class="smart-insight">🧠 The Mapo-gu sit overlaps your hotel checkout (May 10). Could save ~$890 AUD on accommodation for the remaining 5 nights. Shall I help with the application?</div>`;}
-
-function rDining(){return `<div class="msg-text">🍽️ Top dining picks in <strong>Da Nang</strong> tonight:</div>
-<div class="result-cards">
-<div class="result-card"><span class="badge-pill bp-green">Top Pick</span><div class="card-route">Madame Lan</div><div class="card-detail">Vietnamese · Seafood · Han River waterfront<br>⭐ 4.8 · Open until 10:30pm</div><div class="amenities">🦞 Fresh seafood · 🌊 River views · 💰 $45–80/pp</div><div class="card-footer"><div class="card-price">~$60 AUD/pp</div><button class="vdb">Reserve</button></div></div>
-<div class="result-card"><span class="badge-pill bp-gold">Your Style</span><div class="card-route">Bé Mặn Restaurant</div><div class="card-detail">Seafood · My Khe Beach<br>⭐ 4.6 · Live lobster & crab</div><div class="amenities">🦀 Live tanks · 🍺 Cold beer · 🏖️ Beach vibes</div><div class="card-footer"><div class="card-price">~$40 AUD/pp</div><button class="vdb">Reserve</button></div></div>
-<div class="result-card"><span class="badge-pill bp-muted">Budget Pick</span><div class="card-route">Mì Quảng Bà Mua</div><div class="card-detail">Local · Authentic Quang noodles<br>⭐ 4.9 · Cash only · 6am–2pm</div><div class="card-footer"><div class="card-price">~$5 AUD/pp</div><button class="vdb">Directions</button></div></div>
-</div>
-<div class="applied-prefs">🎯 Seafood ✓ · Budget $50–100 ✓ · Your history: you visit seafood restaurants 68% of the time</div>`;}
-
-function rGrocery(){return `<div class="msg-text">🛒 Grocery options near you in <strong>Da Nang</strong> matching your dietary needs:</div>
-<div class="result-cards">
-<div class="result-card"><span class="badge-pill bp-green">Best Match</span><div class="card-route">Lotte Mart Da Nang</div><div class="card-detail">1.2km away · Open until 10pm<br>Large international section · Gluten-free aisle</div><div class="amenities">✅ Gluten-free range ✅ Fresh produce ✅ Import section</div><div class="card-footer"><div class="card-price">Mid-range</div><button class="vdb">Directions</button></div></div>
-<div class="result-card"><span class="badge-pill bp-blue">Health Focus</span><div class="card-route">An Phú Organic Market</div><div class="card-detail">2.4km · Open 7am–8pm · Specialty health store</div><div class="amenities">✅ Organic ✅ Gluten-free ✅ Vegan options</div><div class="card-footer"><div class="card-price">Premium</div><button class="vdb">Directions</button></div></div>
-</div>
-<div class="smart-insight">🧠 <strong>Seoul tip:</strong> When you arrive, look for 올리브영 (Olive Young) for health foods, and emart for the best international/dietary options. I'll send you a grocery guide 2 days before arrival.</div>`;}
-
-function rActivities(){return `<div class="msg-text">🎯 <strong>Day trip plan</strong> optimized for your interests & crowd avoidance:</div>
-<div class="result-cards">
-<div class="result-card"><span class="badge-pill bp-green">Optimized Route</span><div class="card-route">Seoul Cultural Day — East to West Loop</div><div class="card-detail">
-🕘 9:00 — <strong>Changdeokgung Palace</strong> (quietest before 10am)<br>
-🕙 10:30 — <strong>Bukchon Hanok Village</strong> (walk east→west, avoids tour groups)<br>
-🕛 12:00 — <strong>Tosokchon Samgyetang</strong> lunch (arrive before 12:30 queue)<br>
-🕐 13:30 — <strong>Insadong</strong> shopping & tea houses<br>
-🕒 15:00 — <strong>Gyeongbokgung Palace</strong> (crowds thin after 3pm)<br>
-🕔 17:00 — <strong>Gwangjang Market</strong> for street food dinner</div>
-<div class="card-footer"><div style="font-size:11px;color:var(--muted);">Total walking: 5.8km · Transit: 0 · All walkable</div></div></div>
-</div>
-<div class="smart-insight">🧠 <strong>Crowd data:</strong> I've routed you east→west because tour buses start at Gyeongbokgung (west) at 9am. By going opposite, you'll be 2-3 hours ahead of crowds at every stop. Wednesday is the quietest weekday based on visitor data.</div>
-<div class="applied-prefs">🎯 Cultural ✓ · Food tours ✓ · Markets ✓ · Crowd avoidance ✓</div>`;}
-
-function rTransfer(){return `<div class="msg-text">🚌 Airport transfer options for <strong>Incheon (ICN) → Seoul</strong>:</div>
-<div class="result-cards">
-<div class="result-card"><span class="badge-pill bp-green">Recommended</span><div class="card-route">AREX Express Train</div><div class="card-detail">ICN → Seoul Station · 43 min direct<br>Every 30 min · First: 05:23 · Last: 22:50</div><div class="card-footer"><div class="card-price">₩9,500 (~$11 AUD)</div><button class="vdb">Pre-book</button></div></div>
-<div class="result-card"><span class="badge-pill bp-blue">Budget</span><div class="card-route">Airport Limousine Bus</div><div class="card-detail">ICN → Itaewon (near your hotel) · 70-90 min<br>Every 15-20 min · Runs until 23:30</div><div class="card-footer"><div class="card-price">₩17,000 (~$19 AUD)</div><button class="vdb">Details</button></div></div>
-<div class="result-card"><span class="badge-pill bp-muted">If delayed</span><div class="card-route">KakaoTaxi / Regular Taxi</div><div class="card-detail">ICN → Itaewon · 60-80 min<br>Available 24/7 · Pre-book recommended after 11pm</div><div class="card-footer"><div class="card-price">~₩75,000 ($65 AUD)</div><button class="vdb">Save link</button></div></div>
-</div>
-<div class="smart-insight">🧠 Your flight lands 13:45 so AREX is perfect. But <strong>15% of VJ862 flights arrive 30+ min late.</strong> If delayed past 22:00, bus 6015 to Itaewon runs until 23:30. I'll monitor your flight on the day and send live options.</div>`;}
-
-function rVisa(){return `<div class="msg-text">🛂 Visa information for your upcoming trips:</div>
-<div class="result-cards">
-<div class="result-card"><span class="badge-pill bp-green">No Action Needed</span><div class="card-route">🇰🇷 South Korea</div><div class="card-detail">Australian passport: <strong>90-day visa-free entry</strong><br>Your stay: 11 days — well within limit<br>Passport expires: Dec 2028 (6+ months validity ✓)</div></div>
-<div class="result-card"><span class="badge-pill bp-green">No Action Needed</span><div class="card-route">🇹🇼 Taiwan</div><div class="card-detail">Australian passport: <strong>90-day visa-free entry</strong><br>eGate eligible for faster immigration</div></div>
-<div class="result-card"><span class="badge-pill bp-blue">Current</span><div class="card-route">🇻🇳 Vietnam</div><div class="card-detail">Your current visa: e-Visa valid until Aug 2025<br>Multiple entry · 90 days per stay</div></div>
-</div>`;}
-
-function rFX(){return `<div class="msg-text">💱 Exchange rate comparison for <strong>AUD → KRW</strong>:</div>
-<div class="result-cards">
-<div class="result-card"><span class="badge-pill bp-green">Best Rate</span><div class="card-route">Wise (TransferWise)</div><div class="card-detail">Rate: 1 AUD = <strong>892.4 KRW</strong><br>Fee: $2.50 AUD · Arrives: Instant to 1 hour</div><div class="card-footer"><div class="card-price">$500 → ₩444,950</div><button class="vdb">Convert</button></div></div>
-<div class="result-card"><span class="badge-pill bp-blue">Good</span><div class="card-route">Revolut</div><div class="card-detail">Rate: 1 AUD = <strong>891.1 KRW</strong><br>Fee: Free (standard) · Weekend markup applies</div><div class="card-footer"><div class="card-price">$500 → ₩444,300</div><button class="vdb">Open app</button></div></div>
-<div class="result-card"><span class="badge-pill bp-muted">Avoid</span><div class="card-route">Your bank (ANZ/CBA)</div><div class="card-detail">Rate: 1 AUD = <strong>874.2 KRW</strong><br>Fee: $15 AUD · Arrives: 1-3 business days</div><div class="card-footer"><div class="card-price">$500 → ₩429,600</div></div></div>
-</div>
-<div class="smart-insight">🧠 Wise saves you <strong>$15,350 KRW (~$17 AUD)</strong> on a $500 conversion vs your bank. The current rate is the best in 30 days — consider converting now for your Seoul trip.</div>`;}
-
-function rDelay(){return `<div class="msg-text">🧠 <strong>Contingency plan</strong> if your Seoul flight is delayed:</div>
-<div class="result-cards">
-<div class="result-card"><span class="badge-pill bp-green">Normal arrival (13:45)</span><div class="card-route">Take AREX Express → Seoul Station</div><div class="card-detail">43 min · ₩9,500 ($11 AUD) · Then taxi to hotel 15 min</div></div>
-<div class="result-card"><span class="badge-pill bp-orange">Delayed to ~20:00</span><div class="card-route">Still fine — AREX until 22:50</div><div class="card-detail">Same route. Allow extra time for immigration (25-40 min at peak)</div></div>
-<div class="result-card"><span class="badge-pill bp-red">Delayed past 22:00</span><div class="card-route">Bus 6015 to Itaewon (until 23:30)</div><div class="card-detail">70 min · ₩17,000 ($19 AUD) · Drops near Grand Hyatt</div></div>
-<div class="result-card"><span class="badge-pill bp-muted">Very late / past 23:30</span><div class="card-route">KakaoTaxi pre-saved</div><div class="card-detail">60-80 min · ~₩75,000 ($65 AUD) · I'll save a booking link</div></div>
-</div>
-<div class="smart-insight">🧠 VJ862 has a <strong>98% on-time record</strong> (within 30 min). Only 2% arrive late enough to miss AREX. I'll monitor your flight on May 4 and push a live notification if anything changes.</div>`;}
-
-function rFallback(q){return `<div class="msg-text">I'm searching across your connected accounts and preferences for "<em>${esc(q)}</em>"...</div>
-<div class="pref-summary-card">
-📍 Based in: <span class="loc">Da Nang, Vietnam</span><br>
-✈️ Next trip: Seoul, May 4–15<br>
-💰 Currency: AUD · Budget: moderate<br>
-🔗 Connected: Gmail, Calendar, Booking.com, Airbnb, Wise, TrustedHousesitters
-</div>
-<div class="msg-text" style="margin-top:8px;">I can help with <strong>flights</strong>, <strong>hotels</strong>, <strong>car hire</strong>, <strong>house-sitting</strong>, <strong>restaurants</strong>, <strong>groceries</strong>, <strong>activities</strong>, <strong>transfers</strong>, <strong>visa info</strong>, <strong>exchange rates</strong>, and <strong>day trip planning</strong>. What would you like to explore?</div>`;}
 
 /* ═══ WELCOME MESSAGE ═══ */
 function showWelcome(){
   const d=document.createElement('div');d.className='msg pa';
-  d.innerHTML=`<div class="msg-av">✈️</div><div class="msg-bub">
-  <div class="msg-text">👋 Hello <strong>Matt</strong>! I'm your <strong>Travel PA</strong>.</div>
-  <div style="font-size:11.5px;color:var(--muted);margin-top:4px;">I'm connected to your accounts and monitoring your upcoming trips. Here's what I know:</div>
-  <div class="pref-summary-card">
-    📍 Base: <span class="loc">Da Nang, Vietnam</span><br>
-    ✈️ Next: Seoul, May 4 (36 days) — Flight booked ✓<br>
-    🏨 Accommodation: 6 of 11 nights booked<br>
-    ⚠️ 2 alerts need your attention<br>
-    💱 AUD→KRW at 30-day high
-  </div>
-  <div class="msg-text" style="margin-top:8px;font-size:12px;color:var(--muted);">Ask me about flights, hotels, car hire, house-sitting, restaurants, groceries, activities, transfers, visas, exchange rates, or day trip planning.</div>
-  </div>`;
+  const av=document.createElement('div');av.className='msg-av';av.textContent='✈️';
+  const bub=document.createElement('div');bub.className='msg-bub';
+  const txt=document.createElement('div');txt.className='msg-text';
+  txt.textContent="👋 Hi! I'm your Travel PA. Right now I can search real flights for you — just tell me where and when (e.g. \"Find flights from Sydney to Tokyo on 1 June 2026\"). Save anything you like and it'll appear on your Trips tab. More tools (hotels, weather, calendar) coming soon.";
+  bub.appendChild(txt);
+  d.appendChild(av);d.appendChild(bub);
   msgs().appendChild(d);
 }
 
@@ -1127,6 +975,7 @@ document.querySelector('input[type=range]')?.addEventListener('input',function()
 
 /* ═══ INIT ═══ */
 loadPrefs();
+renderTrips();
 showWelcome();
 </script>
 </body>
