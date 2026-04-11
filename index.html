@@ -366,21 +366,33 @@ input[type=number].p-inp{-moz-appearance:textfield;}
 .trip-act-btn.danger{color:var(--red);border-color:rgba(231,76,60,.3);}
 
 /* ═══ FLIGHT RESULT CARDS IN CHAT ═══ */
-.flight-card{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:11px 12px;margin-top:7px;}
-.flight-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:6px;}
-.flight-card-airline{font-size:12.5px;font-weight:600;color:var(--white);}
-.flight-card-price{font-size:15px;font-weight:700;color:var(--gold);white-space:nowrap;}
-.flight-card-segments{font-size:11px;color:var(--muted);line-height:1.7;margin-bottom:7px;}
-.flight-card-segments strong{color:var(--white);font-weight:600;}
-.flight-card-actions{display:flex;gap:6px;flex-wrap:wrap;}
+.flight-card{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-top:7px;}
+.flight-card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.flight-card-airline{font-size:12.5px;font-weight:700;color:var(--white);}
+.flight-card-source{font-size:9.5px;font-weight:600;padding:2px 7px;border-radius:8px;background:rgba(255,255,255,0.06);color:var(--muted);border:1px solid var(--border);}
+.flight-card-route{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+.flight-card-iata{font-size:18px;font-weight:700;color:var(--white);letter-spacing:.5px;}
+.flight-card-time{font-size:11px;color:var(--muted);margin-top:1px;}
+.flight-card-line{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;}
+.flight-card-dots{width:100%;display:flex;align-items:center;gap:0;}
+.flight-card-dot{width:5px;height:5px;border-radius:50%;background:var(--gold);flex-shrink:0;}
+.flight-card-bar{flex:1;height:1px;background:var(--border2);}
+.flight-card-stops{font-size:9.5px;color:var(--muted);}
+.flight-card-meta{font-size:11px;color:var(--muted);margin-bottom:10px;}
+.flight-card-meta strong{color:var(--white);}
+.flight-card-price-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.flight-card-price{font-size:20px;font-weight:700;color:var(--gold);}
+.flight-card-dur{font-size:11px;color:var(--muted);}
+.flight-card-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
 .flight-card-actions button,.flight-card-actions a{font-size:10.5px;font-weight:600;padding:6px 12px;border-radius:16px;border:1px solid var(--gold-border);background:transparent;color:var(--gold);cursor:pointer;text-decoration:none;display:inline-block;transition:background .15s;}
 .flight-card-actions a:hover,.flight-card-actions button:hover{background:var(--gold-dim);}
 .flight-card-actions .save-flight{background:var(--gold);color:#0b1117;border-color:var(--gold);}
 .flight-card-actions .save-flight.saved{background:transparent;color:var(--green);border-color:rgba(46,204,113,.4);cursor:default;}
-.booking-links{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px;padding-top:7px;border-top:1px solid var(--border);}
-.booking-links-label{font-size:10px;color:var(--muted);margin-bottom:2px;}
-.booking-links a{font-size:10px;font-weight:600;padding:4px 9px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--muted);text-decoration:none;transition:color .15s,border-color .15s;}
-.booking-links a:hover{color:var(--white);border-color:var(--gold-border);}
+.flight-card-actions .book-btn{background:var(--gold-dim);color:var(--gold);}
+.compare-links{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);align-items:center;}
+.compare-links-label{font-size:9.5px;color:var(--muted);white-space:nowrap;}
+.compare-links a{font-size:9.5px;font-weight:600;padding:3px 8px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--muted);text-decoration:none;transition:color .15s,border-color .15s;}
+.compare-links a:hover{color:var(--white);border-color:var(--gold-border);}
 </style>
 </head>
 <body>
@@ -758,81 +770,112 @@ function addPAText(text){
 }
 
 // Render flight result cards from a search_flights tool call.
-// Each card has airline + segments + price + Book/Save buttons.
 function renderFlightCards(input,output){
   const wrap=document.createElement('div');wrap.className='msg pa';
   const av=document.createElement('div');av.className='msg-av';av.textContent='🔎';
   const bub=document.createElement('div');bub.className='msg-bub';
+
   const head=document.createElement('div');head.className='msg-text';
-  head.style.fontSize='11.5px';head.style.color='var(--muted)';head.style.marginBottom='3px';
-  head.textContent=`${input.origin} → ${input.destination} · ${input.departure_date}${input.return_date?' → '+input.return_date:''} · ${output.count} result${output.count===1?'':'s'}`;
+  head.style.cssText='font-size:11px;color:var(--muted);margin-bottom:4px;';
+  head.textContent=`${input.origin} → ${input.destination} · ${input.departure_date}${input.return_date?' → '+input.return_date:''} · Top ${output.count} match${output.count===1?'':'es'} for your preferences`;
   bub.appendChild(head);
 
-  if(output.offers.length===0){
+  if(!output.offers||output.offers.length===0){
     const empty=document.createElement('div');empty.className='msg-text';
-    empty.style.fontSize='12px';empty.style.color='var(--muted)';
+    empty.style.cssText='font-size:12px;color:var(--muted);';
     empty.textContent='No flights found for that route and date.';
     bub.appendChild(empty);
   }
 
-  output.offers.forEach((offer,idx)=>{
+  (output.offers||[]).forEach((offer)=>{
     const card=document.createElement('div');card.className='flight-card';
 
-    // Airlines + price row
-    const top=document.createElement('div');top.className='flight-card-top';
-    const airlines=document.createElement('div');airlines.className='flight-card-airline';
+    // Header row: airline name + source badge
+    const header=document.createElement('div');header.className='flight-card-header';
     const carriers=[...new Set((offer.segments||[]).map(s=>s.airline).filter(Boolean))];
-    airlines.textContent=carriers.join(' / ')||'Flight';
-    const price=document.createElement('div');price.className='flight-card-price';
-    price.textContent=offer.price||'';
-    top.appendChild(airlines);top.appendChild(price);
-    card.appendChild(top);
+    const airlineEl=document.createElement('div');airlineEl.className='flight-card-airline';
+    airlineEl.textContent=carriers.join(' / ')||'Flight';
+    const srcBadge=document.createElement('span');srcBadge.className='flight-card-source';
+    srcBadge.textContent=(offer.source||'Google Flights');
+    header.appendChild(airlineEl);header.appendChild(srcBadge);
+    card.appendChild(header);
 
-    // Segments
-    const segs=document.createElement('div');segs.className='flight-card-segments';
-    const lines=(offer.segments||[]).map(s=>{
-      const dep=fmtTime(s.depart);
-      const arr=fmtTime(s.arrive);
-      return `<strong>${s.from}</strong> ${dep} → <strong>${s.to}</strong> ${arr} · ${s.flight_number||''}`;
-    });
-    const stops=offer.layovers&&offer.layovers.length?`${offer.layovers.length} stop${offer.layovers.length===1?'':'s'}`:'Direct';
+    // Route visualiser: IATA · time → line → IATA · time
+    const firstSeg=offer.segments&&offer.segments[0];
+    const lastSeg=offer.segments&&offer.segments[offer.segments.length-1];
+    if(firstSeg&&lastSeg){
+      const route=document.createElement('div');route.className='flight-card-route';
+
+      const dep=document.createElement('div');
+      dep.innerHTML=`<div class="flight-card-iata">${esc(firstSeg.from||'')}</div><div class="flight-card-time">${esc(fmtTime(firstSeg.depart))}</div>`;
+      route.appendChild(dep);
+
+      const line=document.createElement('div');line.className='flight-card-line';
+      const stopLabel=offer.layovers&&offer.layovers.length
+        ?`${offer.layovers.length} stop${offer.layovers.length===1?'':'s'}`
+        :'Direct';
+      line.innerHTML=`<div class="flight-card-dots"><div class="flight-card-dot"></div><div class="flight-card-bar"></div><div class="flight-card-dot"></div></div><div class="flight-card-stops">${esc(stopLabel)}</div>`;
+      route.appendChild(line);
+
+      const arr=document.createElement('div');arr.style.textAlign='right';
+      arr.innerHTML=`<div class="flight-card-iata">${esc(lastSeg.to||'')}</div><div class="flight-card-time">${esc(fmtTime(lastSeg.arrive))}</div>`;
+      route.appendChild(arr);
+      card.appendChild(route);
+    }
+
+    // Price + duration row
+    const priceRow=document.createElement('div');priceRow.className='flight-card-price-row';
+    const priceEl=document.createElement('div');priceEl.className='flight-card-price';priceEl.textContent=offer.price||'';
+    const durEl=document.createElement('div');durEl.className='flight-card-dur';
     const totalDur=offer.total_duration_min?`${Math.floor(offer.total_duration_min/60)}h ${offer.total_duration_min%60}m`:'';
-    segs.innerHTML=lines.join('<br>')+`<br>${stops}${totalDur?' · '+totalDur:''}`;
-    card.appendChild(segs);
+    const flightNums=(offer.segments||[]).map(s=>s.flight_number).filter(Boolean).join(', ');
+    durEl.textContent=[totalDur,flightNums].filter(Boolean).join(' · ');
+    priceRow.appendChild(priceEl);priceRow.appendChild(durEl);
+    card.appendChild(priceRow);
 
-    // Actions
+    // Layover detail if any
+    if(offer.layovers&&offer.layovers.length){
+      const lMeta=document.createElement('div');lMeta.className='flight-card-meta';
+      lMeta.innerHTML='Via: '+offer.layovers.map(l=>{
+        const d=l.duration_min?`${Math.floor(l.duration_min/60)}h ${l.duration_min%60}m`:'';
+        return `<strong>${esc(l.airport)}</strong>${d?' ('+d+')':''}${l.overnight?' 🌙 overnight':''}`;
+      }).join(' → ');
+      card.appendChild(lMeta);
+    }
+
+    // Actions: Save + primary Book button
     const acts=document.createElement('div');acts.className='flight-card-actions';
-    const saveBtn=document.createElement('button');saveBtn.className='save-flight';saveBtn.textContent='💾 Save to trips';
+    const saveBtn=document.createElement('button');saveBtn.className='save-flight';saveBtn.textContent='💾 Save';
     saveBtn.onclick=()=>{
-      saveTripFromFlight(input,offer,output.booking_links||{});
+      saveTripFromFlight(input,offer,offer.booking_links||{});
       saveBtn.classList.add('saved');saveBtn.textContent='✓ Saved';saveBtn.disabled=true;
       showToast('Saved to trips');
     };
     acts.appendChild(saveBtn);
+
+    const bl=offer.booking_links||{};
+    const primaryUrl=bl.google_flights||'#';
+    const bookBtn=document.createElement('a');bookBtn.className='book-btn';
+    bookBtn.href=primaryUrl;bookBtn.target='_blank';bookBtn.rel='noopener noreferrer';
+    bookBtn.textContent=offer.has_direct_link?'Book on Google Flights ↗':'Search Google Flights ↗';
+    acts.appendChild(bookBtn);
     card.appendChild(acts);
 
-    // Booking links row — one button per platform
-    const links=output.booking_links||{};
-    if(Object.keys(links).length){
-      const blWrap=document.createElement('div');
-      const blLabel=document.createElement('div');blLabel.className='booking-links-label';blLabel.textContent='Compare & book on:';
-      blWrap.appendChild(blLabel);
-      const blRow=document.createElement('div');blRow.className='booking-links';
-      const platforms=[
-        {key:'google_flights',label:'Google Flights'},
-        {key:'skyscanner',label:'Skyscanner'},
-        {key:'kayak',label:'Kayak'},
-        {key:'expedia',label:'Expedia'},
-      ];
-      platforms.forEach(p=>{
-        if(!links[p.key])return;
-        const a=document.createElement('a');
-        a.href=links[p.key];a.target='_blank';a.rel='noopener noreferrer';
-        a.textContent=p.label+' ↗';
-        blRow.appendChild(a);
+    // Compare row: smaller links for Skyscanner / Kayak / Expedia
+    const comparePlatforms=[
+      {key:'skyscanner',label:'Skyscanner'},
+      {key:'kayak',label:'Kayak'},
+      {key:'expedia',label:'Expedia'},
+    ].filter(p=>bl[p.key]);
+    if(comparePlatforms.length){
+      const cmp=document.createElement('div');cmp.className='compare-links';
+      const lbl=document.createElement('span');lbl.className='compare-links-label';lbl.textContent='Also search:';
+      cmp.appendChild(lbl);
+      comparePlatforms.forEach(p=>{
+        const a=document.createElement('a');a.href=bl[p.key];a.target='_blank';a.rel='noopener noreferrer';
+        a.textContent=p.label+' ↗';cmp.appendChild(a);
       });
-      blWrap.appendChild(blRow);
-      card.appendChild(blWrap);
+      card.appendChild(cmp);
     }
 
     bub.appendChild(card);
@@ -849,10 +892,6 @@ function fmtTime(iso){
   return m?m[1]:iso;
 }
 
-function googleFlightsLink(input){
-  const out=input.departure_date,ret=input.return_date||'';
-  return `https://www.google.com/travel/flights?q=Flights%20from%20${input.origin}%20to%20${input.destination}%20on%20${out}${ret?'%20returning%20'+ret:''}`;
-}
 
 function showToast(text){
   const t=document.getElementById('toast');
@@ -873,21 +912,23 @@ function setTrips(t){localStorage.setItem(TRIPS_KEY,JSON.stringify(t));}
 function saveTripFromFlight(input,offer,bookingLinks){
   const trips=getTrips();
   const id='t_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
+  const bl=bookingLinks||offer.booking_links||{};
   trips.unshift({
     id,
     type:'flight',
-    status:'researched', // researched | confirmed
+    status:'researched',
     saved_at:new Date().toISOString(),
     origin:input.origin,
     destination:input.destination,
     departure_date:input.departure_date,
     return_date:input.return_date||null,
     price:offer.price,
+    source:offer.source||'Google Flights',
     segments:offer.segments||[],
     total_duration_min:offer.total_duration_min,
     layovers:offer.layovers||[],
-    booking_links:bookingLinks||{},
-    booking_url:bookingLinks&&bookingLinks.google_flights||googleFlightsLink(input)
+    booking_links:bl,
+    booking_url:bl.google_flights||'#'
   });
   setTrips(trips);
   renderTrips();

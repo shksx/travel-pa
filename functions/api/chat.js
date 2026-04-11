@@ -103,7 +103,7 @@ export async function onRequestPost(context) {
     const toolResultBlocks = [];
     for (const block of content) {
       if (block.type !== "tool_use") continue;
-      const result = await executeTool(block.name, block.input, env);
+      const result = await executeTool(block.name, block.input, env, prefs);
       toolCalls.push({ tool: block.name, input: block.input, output: result });
       toolResultBlocks.push({
         type: "tool_result",
@@ -147,9 +147,9 @@ async function callClaude({ apiKey, system, messages, tools }) {
   return { data: await resp.json() };
 }
 
-async function executeTool(name, input, env) {
+async function executeTool(name, input, env, prefs) {
   if (name === "search_flights") {
-    return await searchFlights(input, env);
+    return await searchFlights(input, env, prefs);
   }
   return { error: `Unknown tool: ${name}` };
 }
@@ -157,7 +157,7 @@ async function executeTool(name, input, env) {
 // ───────────────────────── SearchAPI.io Google Flights ─────────────────────────
 // Docs: https://www.searchapi.io/docs/google-flights-api
 
-async function searchFlights(input, env) {
+async function searchFlights(input, env, prefs) {
   if (!env.SEARCHAPI_API_KEY) {
     return { error: "Server is missing SEARCHAPI_API_KEY environment variable." };
   }
@@ -195,20 +195,24 @@ async function searchFlights(input, env) {
 
   const data = await resp.json();
 
-  // SearchAPI returns best_flights and other_flights — combine, take top 5.
-  const raw = [...(data.best_flights || []), ...(data.other_flights || [])].slice(0, 5);
+  // Combine best + other, take a wider pool to rank from, then return top 3.
+  const raw = [...(data.best_flights || []), ...(data.other_flights || [])].slice(0, 10);
 
-  const offers = raw.map((o) => ({
+  const searchLinks = buildSearchLinks(input);
+
+  const mapped = raw.map((o) => ({
     price: o.price != null ? `${o.price} AUD` : "n/a",
+    price_num: o.price != null ? o.price : 99999,
     total_duration_min: o.total_duration,
     type: o.type,
+    source: "Google Flights",
     carbon_emissions_kg: o.carbon_emissions?.this_flight
       ? Math.round(o.carbon_emissions.this_flight / 1000)
       : null,
     layovers: (o.layovers || []).map((l) => ({
       airport: l.id || l.name,
       duration_min: l.duration,
-      overnight: l.overnight,
+      overnight: !!l.overnight,
     })),
     segments: (o.flights || []).map((s) => ({
       from: s.departure_airport?.id,
@@ -218,15 +222,29 @@ async function searchFlights(input, env) {
       depart: s.departure_airport?.time,
       arrive: s.arrival_airport?.time,
       airline: s.airline,
+      airline_logo: s.airline_logo,
       flight_number: s.flight_number,
       duration_min: s.duration,
       travel_class: s.travel_class,
     })),
+    // Per-offer booking links: direct to this specific flight on Google Flights
+    // (via booking_token), plus search pages for comparison platforms.
+    booking_links: {
+      google_flights: o.booking_token
+        ? `https://www.google.com/travel/flights?tfs=${o.booking_token}&hl=en&gl=au&curr=AUD`
+        : searchLinks.google_flights,
+      skyscanner: searchLinks.skyscanner,
+      kayak: searchLinks.kayak,
+      expedia: searchLinks.expedia,
+    },
+    has_direct_link: !!o.booking_token,
   }));
 
+  const ranked = rankOffers(mapped, prefs).slice(0, 3);
+
   return {
-    offers,
-    count: offers.length,
+    offers: ranked,
+    count: ranked.length,
     price_insights: data.price_insights
       ? {
           lowest_price: data.price_insights.lowest_price,
@@ -234,15 +252,70 @@ async function searchFlights(input, env) {
           price_level: data.price_insights.price_level,
         }
       : null,
-    booking_links: buildBookingLinks(input),
-    source: "Google Flights via SearchAPI.io (real prices in AUD)",
   };
 }
 
-// ───────────────────────── Booking deep-link builders ─────────────────────────
-// Generates pre-filled search URLs for the four platforms digital nomads use most.
+// Rank offers against user preferences. Returns sorted array (best first).
+function rankOffers(offers, prefs) {
+  const p = prefs || {};
+  const directOnly = p.t_direct_only === true || p.t_direct_only === "true";
+  const noOvernight = p.t_no_overnight === true || p.t_no_overnight === "true";
+  const preferredAirlines = p.i_preferred_airlines
+    ? String(p.i_preferred_airlines).toLowerCase().split(/[,\s]+/).filter(Boolean)
+    : [];
 
-function buildBookingLinks(input) {
+  const prices = offers.map((o) => o.price_num);
+  const minPrice = Math.min(...prices);
+  const maxPrice = Math.max(...prices);
+  const priceRange = maxPrice - minPrice || 1;
+
+  const durations = offers.map((o) => o.total_duration_min || 9999);
+  const minDur = Math.min(...durations);
+  const maxDur = Math.max(...durations);
+  const durRange = maxDur - minDur || 1;
+
+  const scored = offers.map((offer) => {
+    let score = 0;
+
+    const isDirect = !offer.layovers || offer.layovers.length === 0;
+    if (isDirect) score += 40;
+    if (!isDirect && directOnly) score -= 100;
+
+    const hasOvernight = (offer.layovers || []).some((l) => l.overnight);
+    if (hasOvernight && noOvernight) score -= 60;
+    else if (hasOvernight) score -= 10;
+
+    const maxLayover = Math.max(0, ...(offer.layovers || []).map((l) => l.duration_min || 0));
+    if (maxLayover > 360) score -= 20;
+    else if (maxLayover > 180) score -= 8;
+
+    // Price: cheaper scores up to +30
+    score += 30 * (1 - (offer.price_num - minPrice) / priceRange);
+
+    // Duration: shorter scores up to +20
+    const dur = offer.total_duration_min || 9999;
+    score += 20 * (1 - (dur - minDur) / durRange);
+
+    // Preferred airline match
+    if (preferredAirlines.length) {
+      const carriers = (offer.segments || []).map((s) => (s.airline || "").toLowerCase());
+      if (preferredAirlines.some((pa) => carriers.some((c) => c.includes(pa)))) score += 25;
+    }
+
+    return { offer, score };
+  });
+
+  return scored
+    .sort((a, b) => b.score - a.score)
+    .map(({ offer }) => offer);
+}
+
+// ───────────────────────── Booking search-URL builders ─────────────────────────
+// Generates pre-filled search URLs for the four platforms digital nomads use most.
+// These land on a filtered search page. Google Flights direct links (per offer)
+// use booking_token instead and are built inline in searchFlights().
+
+function buildSearchLinks(input) {
   const { origin, destination, departure_date, return_date, adults, travel_class } = input;
   const pax = adults || 1;
   const cabin = travel_class || "economy";
