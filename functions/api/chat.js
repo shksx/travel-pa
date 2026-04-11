@@ -167,7 +167,8 @@ async function searchFlights(input, env, prefs) {
     return { error: "search_flights requires origin, destination, and departure_date." };
   }
 
-  const params = new URLSearchParams({
+  // Base params reused for both the initial search and per-offer booking lookups.
+  const baseParams = {
     engine: "google_flights",
     api_key: env.SEARCHAPI_API_KEY,
     departure_id: origin,
@@ -178,13 +179,13 @@ async function searchFlights(input, env, prefs) {
     currency: "AUD",
     gl: "au",
     hl: "en",
-  });
-  if (return_date) params.set("return_date", return_date);
-  if (travel_class) params.set("travel_class", travel_class);
+  };
+  if (return_date) baseParams.return_date = return_date;
+  if (travel_class) baseParams.travel_class = travel_class;
 
   let resp;
   try {
-    resp = await fetch(`https://www.searchapi.io/api/v1/search?${params.toString()}`);
+    resp = await fetch(`https://www.searchapi.io/api/v1/search?${new URLSearchParams(baseParams)}`);
   } catch (e) {
     return { error: "Network error reaching SearchAPI.", details: String(e) };
   }
@@ -195,7 +196,7 @@ async function searchFlights(input, env, prefs) {
 
   const data = await resp.json();
 
-  // Combine best + other, take a wider pool to rank from, then return top 3.
+  // Combine best + other, take a wider pool to rank from.
   const raw = [...(data.best_flights || []), ...(data.other_flights || [])].slice(0, 10);
 
   const searchLinks = buildSearchLinks(input);
@@ -227,24 +228,41 @@ async function searchFlights(input, env, prefs) {
       duration_min: s.duration,
       travel_class: s.travel_class,
     })),
-    // Per-offer booking links: direct to this specific flight on Google Flights
-    // (via booking_token), plus search pages for comparison platforms.
+    // Search-page fallbacks for all platforms. Google Flights direct link
+    // is resolved below via a second API call using the departure_token.
     booking_links: {
-      google_flights: o.booking_token
-        ? `https://www.google.com/travel/flights?tfs=${o.booking_token}&hl=en&gl=au&curr=AUD`
-        : searchLinks.google_flights,
+      google_flights: searchLinks.google_flights,
       skyscanner: searchLinks.skyscanner,
       kayak: searchLinks.kayak,
       expedia: searchLinks.expedia,
     },
-    has_direct_link: !!o.booking_token,
+    has_direct_link: false,
+    _departure_token: o.booking_token || null,
   }));
 
-  const ranked = rankOffers(mapped, prefs).slice(0, 3);
+  // Rank, take top 3, then resolve real booking URLs in parallel.
+  const top3 = rankOffers(mapped, prefs).slice(0, 3);
+
+  const offers = await Promise.all(
+    top3.map(async (offer) => {
+      const token = offer._departure_token;
+      delete offer._departure_token;
+
+      if (!token) return offer;
+
+      const bookingOption = await fetchBookingOption(token, baseParams);
+      if (bookingOption) {
+        offer.booking_links.google_flights = bookingOption.url;
+        offer.source = bookingOption.book_with || "Google Flights";
+        offer.has_direct_link = true;
+      }
+      return offer;
+    })
+  );
 
   return {
-    offers: ranked,
-    count: ranked.length,
+    offers,
+    count: offers.length,
     price_insights: data.price_insights
       ? {
           lowest_price: data.price_insights.lowest_price,
@@ -253,6 +271,30 @@ async function searchFlights(input, env, prefs) {
         }
       : null,
   };
+}
+
+// Exchange a departure_token for the cheapest real booking URL for that flight.
+// SearchAPI docs: pass departure_token with the same base params to get booking_options.
+async function fetchBookingOption(departureToken, baseParams) {
+  try {
+    const params = new URLSearchParams({ ...baseParams, departure_token: departureToken });
+    const resp = await fetch(`https://www.searchapi.io/api/v1/search?${params}`);
+    if (!resp.ok) return null;
+    const data = await resp.json();
+
+    // booking_options shape: [{together: {book_with, price, option: {url}}}, ...]
+    // Some results use "separately" instead of "together".
+    const candidates = (data.booking_options || [])
+      .flatMap((b) => [b.together, ...(Array.isArray(b.separately) ? b.separately : [b.separately])])
+      .filter((b) => b?.option?.url)
+      .map((b) => ({ book_with: b.book_with || "Book", url: b.option.url, price: b.price ?? 99999 }));
+
+    if (!candidates.length) return null;
+    // Return the cheapest option.
+    return candidates.sort((a, b) => a.price - b.price)[0];
+  } catch {
+    return null;
+  }
 }
 
 // Rank offers against user preferences. Returns sorted array (best first).

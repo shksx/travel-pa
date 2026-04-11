@@ -857,7 +857,8 @@ function renderFlightCards(input,output){
     const primaryUrl=bl.google_flights||'#';
     const bookBtn=document.createElement('a');bookBtn.className='book-btn';
     bookBtn.href=primaryUrl;bookBtn.target='_blank';bookBtn.rel='noopener noreferrer';
-    bookBtn.textContent=offer.has_direct_link?'Book on Google Flights ↗':'Search Google Flights ↗';
+    const bookSource=offer.source&&offer.source!=='Google Flights'?offer.source:'Google Flights';
+    bookBtn.textContent=offer.has_direct_link?`Book on ${bookSource} ↗`:'Search Google Flights ↗';
     acts.appendChild(bookBtn);
     card.appendChild(acts);
 
