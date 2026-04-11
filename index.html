@@ -372,11 +372,15 @@ input[type=number].p-inp{-moz-appearance:textfield;}
 .flight-card-price{font-size:15px;font-weight:700;color:var(--gold);white-space:nowrap;}
 .flight-card-segments{font-size:11px;color:var(--muted);line-height:1.7;margin-bottom:7px;}
 .flight-card-segments strong{color:var(--white);font-weight:600;}
-.flight-card-actions{display:flex;gap:6px;}
+.flight-card-actions{display:flex;gap:6px;flex-wrap:wrap;}
 .flight-card-actions button,.flight-card-actions a{font-size:10.5px;font-weight:600;padding:6px 12px;border-radius:16px;border:1px solid var(--gold-border);background:transparent;color:var(--gold);cursor:pointer;text-decoration:none;display:inline-block;transition:background .15s;}
 .flight-card-actions a:hover,.flight-card-actions button:hover{background:var(--gold-dim);}
 .flight-card-actions .save-flight{background:var(--gold);color:#0b1117;border-color:var(--gold);}
 .flight-card-actions .save-flight.saved{background:transparent;color:var(--green);border-color:rgba(46,204,113,.4);cursor:default;}
+.booking-links{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px;padding-top:7px;border-top:1px solid var(--border);}
+.booking-links-label{font-size:10px;color:var(--muted);margin-bottom:2px;}
+.booking-links a{font-size:10px;font-weight:600;padding:4px 9px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--muted);text-decoration:none;transition:color .15s,border-color .15s;}
+.booking-links a:hover{color:var(--white);border-color:var(--gold-border);}
 </style>
 </head>
 <body>
@@ -800,18 +804,36 @@ function renderFlightCards(input,output){
     const acts=document.createElement('div');acts.className='flight-card-actions';
     const saveBtn=document.createElement('button');saveBtn.className='save-flight';saveBtn.textContent='💾 Save to trips';
     saveBtn.onclick=()=>{
-      saveTripFromFlight(input,offer);
+      saveTripFromFlight(input,offer,output.booking_links||{});
       saveBtn.classList.add('saved');saveBtn.textContent='✓ Saved';saveBtn.disabled=true;
       showToast('Saved to trips');
     };
     acts.appendChild(saveBtn);
-    // No deep_link from SearchAPI, so use a Google Flights search URL fallback
-    const link=document.createElement('a');
-    link.href=googleFlightsLink(input);
-    link.target='_blank';link.rel='noopener noreferrer';
-    link.textContent='Open in Google Flights ↗';
-    acts.appendChild(link);
     card.appendChild(acts);
+
+    // Booking links row — one button per platform
+    const links=output.booking_links||{};
+    if(Object.keys(links).length){
+      const blWrap=document.createElement('div');
+      const blLabel=document.createElement('div');blLabel.className='booking-links-label';blLabel.textContent='Compare & book on:';
+      blWrap.appendChild(blLabel);
+      const blRow=document.createElement('div');blRow.className='booking-links';
+      const platforms=[
+        {key:'google_flights',label:'Google Flights'},
+        {key:'skyscanner',label:'Skyscanner'},
+        {key:'kayak',label:'Kayak'},
+        {key:'expedia',label:'Expedia'},
+      ];
+      platforms.forEach(p=>{
+        if(!links[p.key])return;
+        const a=document.createElement('a');
+        a.href=links[p.key];a.target='_blank';a.rel='noopener noreferrer';
+        a.textContent=p.label+' ↗';
+        blRow.appendChild(a);
+      });
+      blWrap.appendChild(blRow);
+      card.appendChild(blWrap);
+    }
 
     bub.appendChild(card);
   });
@@ -848,7 +870,7 @@ function getTrips(){
 }
 function setTrips(t){localStorage.setItem(TRIPS_KEY,JSON.stringify(t));}
 
-function saveTripFromFlight(input,offer){
+function saveTripFromFlight(input,offer,bookingLinks){
   const trips=getTrips();
   const id='t_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
   trips.unshift({
@@ -864,7 +886,8 @@ function saveTripFromFlight(input,offer){
     segments:offer.segments||[],
     total_duration_min:offer.total_duration_min,
     layovers:offer.layovers||[],
-    booking_url:googleFlightsLink(input)
+    booking_links:bookingLinks||{},
+    booking_url:bookingLinks&&bookingLinks.google_flights||googleFlightsLink(input)
   });
   setTrips(trips);
   renderTrips();
@@ -931,8 +954,27 @@ function renderTripCard(t,withActions){
 
   if(withActions){
     const acts=document.createElement('div');acts.className='trip-card-actions';
-    const a=document.createElement('a');a.href=t.booking_url||'#';a.target='_blank';a.rel='noopener noreferrer';a.className='trip-act-btn primary';a.textContent='Book ↗';
-    acts.appendChild(a);
+    // Platform booking links
+    const platforms=[
+      {key:'google_flights',label:'Google Flights'},
+      {key:'skyscanner',label:'Skyscanner'},
+      {key:'kayak',label:'Kayak'},
+      {key:'expedia',label:'Expedia'},
+    ];
+    const bl=t.booking_links||{};
+    const hasLinks=Object.keys(bl).length>0;
+    if(hasLinks){
+      platforms.forEach(p=>{
+        if(!bl[p.key])return;
+        const a=document.createElement('a');a.href=bl[p.key];a.target='_blank';a.rel='noopener noreferrer';
+        a.className='trip-act-btn primary';a.textContent=p.label+' ↗';
+        acts.appendChild(a);
+      });
+    }else{
+      // Fallback for trips saved before multi-platform support
+      const a=document.createElement('a');a.href=t.booking_url||'#';a.target='_blank';a.rel='noopener noreferrer';a.className='trip-act-btn primary';a.textContent='Book ↗';
+      acts.appendChild(a);
+    }
     const tog=document.createElement('button');tog.className='trip-act-btn';tog.textContent=t.status==='confirmed'?'Mark as researched':'Mark as booked';
     tog.onclick=()=>toggleBooked(t.id);
     acts.appendChild(tog);

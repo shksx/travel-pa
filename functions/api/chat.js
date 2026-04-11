@@ -1,6 +1,7 @@
 // Cloudflare Pages Function: POST /api/chat
 // Proxies a chat conversation to Anthropic Claude, with tool use support.
 // Tools currently available: search_flights (Google Flights via SearchAPI.io).
+// Booking deep-links are generated for: Google Flights, Skyscanner, Kayak, Expedia.
 //
 // Required env vars (set in Cloudflare Pages → Settings → Environment variables):
 //   ANTHROPIC_API_KEY  — Anthropic console key
@@ -233,8 +234,48 @@ async function searchFlights(input, env) {
           price_level: data.price_insights.price_level,
         }
       : null,
+    booking_links: buildBookingLinks(input),
     source: "Google Flights via SearchAPI.io (real prices in AUD)",
   };
+}
+
+// ───────────────────────── Booking deep-link builders ─────────────────────────
+// Generates pre-filled search URLs for the four platforms digital nomads use most.
+
+function buildBookingLinks(input) {
+  const { origin, destination, departure_date, return_date, adults, travel_class } = input;
+  const pax = adults || 1;
+  const cabin = travel_class || "economy";
+
+  // Google Flights
+  const gf = `https://www.google.com/travel/flights?q=Flights%20from%20${origin}%20to%20${destination}%20on%20${departure_date}${return_date ? "%20returning%20" + return_date : ""}`;
+
+  // Skyscanner — date format YYMMDD
+  function toSkyscannerDate(iso) {
+    return iso ? iso.slice(2).replace(/-/g, "") : "";
+  }
+  const skySuffix = return_date
+    ? `${toSkyscannerDate(departure_date)}/${toSkyscannerDate(return_date)}/`
+    : `${toSkyscannerDate(departure_date)}/`;
+  const sky = `https://www.skyscanner.com.au/transport/flights/${origin.toLowerCase()}/${destination.toLowerCase()}/${skySuffix}`;
+
+  // Kayak
+  const kayakBase = `https://www.kayak.com.au/flights/${origin}-${destination}/${departure_date}`;
+  const kayak = return_date ? `${kayakBase}/${return_date}/${pax}adults` : `${kayakBase}/${pax}adults`;
+
+  // Expedia — leg dates in MM/DD/YYYY format
+  function toExpediaDate(iso) {
+    const [y, m, d] = iso.split("-");
+    return `${m}/${d}/${y}`;
+  }
+  const cabinMap = { economy: "coach", premium_economy: "premiumeconomy", business: "business", first: "first" };
+  const expCabin = cabinMap[cabin] || "coach";
+  const tripType = return_date ? "roundtrip" : "oneway";
+  let expLegs = `leg1=from:${origin},to:${destination},departure:${toExpediaDate(departure_date)}TANYT`;
+  if (return_date) expLegs += `&leg2=from:${destination},to:${origin},departure:${toExpediaDate(return_date)}TANYT`;
+  const expedia = `https://www.expedia.com.au/Flights-Search?mode=search&trip=${tripType}&${expLegs}&passengers=adults:${pax},children:0&options=cabinclass:${expCabin}`;
+
+  return { google_flights: gf, skyscanner: sky, kayak, expedia };
 }
 
 // ───────────────────────── helpers ─────────────────────────
@@ -249,14 +290,22 @@ function json(obj, status = 200) {
 function buildSystemPrompt(prefs) {
   const today = new Date().toISOString().slice(0, 10);
   const lines = [
-    "You are Travel PA, a proactive and deeply personalized travel assistant.",
+    "You are Travel PA, a proactive and deeply personalized travel assistant for digital nomads.",
     "Be warm, concise, and practical. Surface useful context the user might not have asked about (last train times, visa rules, weather, crowd patterns) when it genuinely helps.",
     "",
     `Today's date is ${today}. Use this when interpreting relative dates like "next Friday" or "in two weeks".`,
     "",
-    "When the user asks about flights, schedules, or prices, ALWAYS use the search_flights tool — never invent flight numbers, times, or prices from your training data. Convert city names to IATA airport codes yourself before calling the tool (e.g. Seoul=ICN, Da Nang=DAD, Sydney=SYD, Melbourne=MEL, Tokyo=HND/NRT, Bangkok=BKK, London=LHR).",
-    "When you receive tool results, summarize them naturally: airline, depart/arrive times, total duration, number of stops/layovers, and price in AUD. Highlight the best value or best match for the user's preferences. If price_insights is included, mention whether the price is low/typical/high vs the historical range.",
-    "If a tool fails or returns no results, tell the user clearly rather than inventing data.",
+    "== Flight search flow ==",
+    "When the user asks about flights, follow this flow exactly:",
+    "1. PARSE intent and constraints from the message: origin, destination, dates, number of passengers, cabin class, flexibility.",
+    "2. CHECK saved preferences (listed below) for: preferred airlines, direct-only, no overnight flights, cabin class, seat preference, budget range.",
+    "3. CALL the search_flights tool with the correct IATA codes — convert city names yourself (e.g. Seoul=ICN, Da Nang=DAD, Sydney=SYD, Melbourne=MEL, Tokyo=HND or NRT, Bangkok=BKK, London=LHR, Bali=DPS, Singapore=SIN, Ho Chi Minh City=SGN, Hanoi=HAN, Kuala Lumpur=KUL, Dubai=DXB). Never invent flight data.",
+    "4. FILTER & RANK results against the user's preferences: flag if a flight violates direct-only, overnight, or airline preferences. Surface the best match first.",
+    "5. EXPLAIN each option naturally: airline, depart/arrive times, total duration, stops, price in AUD. Mention any tradeoff (e.g. cheaper but has a stop, or premium but direct).",
+    "6. MENTION price context: if price_insights is included, say whether the price is lower/typical/higher than the historical range.",
+    "7. SUGGEST next step: remind the user they can save the flight and compare prices across Google Flights, Skyscanner, Kayak, and Expedia using the booking links shown on the cards.",
+    "If a tool fails or returns no results, say so clearly rather than inventing data. Ask the user if they want to try different dates or a nearby airport.",
+    "",
     "For everything else (weather, traffic, hotels, current events) where no tool exists yet, say so plainly and offer what general guidance you can.",
     "",
     "Format replies as plain text. Use line breaks for structure. Do not use markdown headings, asterisks, or HTML tags.",
