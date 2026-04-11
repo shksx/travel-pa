@@ -7,8 +7,8 @@
 //   ANTHROPIC_API_KEY  — Anthropic console key
 //   SEARCHAPI_API_KEY  — SearchAPI.io key (https://www.searchapi.io)
 
-const MODEL = "claude-sonnet-4-6";
-const MAX_TOKENS = 2048;
+const MODEL = "claude-haiku-4-5-20251001";
+const MAX_TOKENS = 4096;
 const MAX_TOOL_ITERATIONS = 5; // safety cap on tool-use loop
 
 const TOOLS = [
@@ -181,7 +181,9 @@ async function searchFlights(input, env, prefs) {
     hl: "en",
   };
   if (return_date) baseParams.return_date = return_date;
-  if (travel_class) baseParams.travel_class = travel_class;
+  // SearchAPI Google Flights expects numeric cabin class codes: 1=Economy, 2=Premium Economy, 3=Business, 4=First
+  const classCodes = { economy: 1, premium_economy: 2, business: 3, first: 4 };
+  if (travel_class && classCodes[travel_class]) baseParams.travel_class = classCodes[travel_class];
 
   let resp;
   try {
@@ -299,6 +301,7 @@ async function fetchBookingOption(departureToken, baseParams) {
 
 // Rank offers against user preferences. Returns sorted array (best first).
 function rankOffers(offers, prefs) {
+  if (!offers || offers.length === 0) return [];
   const p = prefs || {};
   const directOnly = p.t_direct_only === true || p.t_direct_only === "true";
   const noOvernight = p.t_no_overnight === true || p.t_no_overnight === "true";

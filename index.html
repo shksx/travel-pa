@@ -775,15 +775,16 @@ function renderFlightCards(input,output){
   const av=document.createElement('div');av.className='msg-av';av.textContent='🔎';
   const bub=document.createElement('div');bub.className='msg-bub';
 
+  const offerCount=(output.offers||[]).length;
   const head=document.createElement('div');head.className='msg-text';
   head.style.cssText='font-size:11px;color:var(--muted);margin-bottom:4px;';
-  head.textContent=`${input.origin} → ${input.destination} · ${input.departure_date}${input.return_date?' → '+input.return_date:''} · Top ${output.count} match${output.count===1?'':'es'} for your preferences`;
+  head.textContent=`${input.origin} → ${input.destination} · ${input.departure_date}${input.return_date?' → '+input.return_date:''} · ${offerCount>0?'Top '+offerCount+' match'+(offerCount===1?'':'es')+' for your preferences':'No flights found'}`;
   bub.appendChild(head);
 
-  if(!output.offers||output.offers.length===0){
+  if(offerCount===0){
     const empty=document.createElement('div');empty.className='msg-text';
     empty.style.cssText='font-size:12px;color:var(--muted);';
-    empty.textContent='No flights found for that route and date.';
+    empty.textContent='No flights found for that route and date. Try different dates or a nearby airport.';
     bub.appendChild(empty);
   }
 
@@ -882,15 +883,29 @@ function renderFlightCards(input,output){
     bub.appendChild(card);
   });
 
+  // Price insights block (if returned by API)
+  if(output.price_insights){
+    const pi=output.price_insights;
+    const ins=document.createElement('div');ins.className='smart-insight';
+    const lvl=pi.price_level;
+    const lvlText=lvl==='low'?'🟢 Prices are lower than usual for this route':lvl==='high'?'🔴 Prices are higher than usual for this route':'🟡 Prices are typical for this route';
+    const range=pi.typical_price_range&&pi.typical_price_range.length===2
+      ?` · Typical range: $${pi.typical_price_range[0]}–$${pi.typical_price_range[1]} AUD`:'';
+    ins.textContent=lvlText+range;
+    bub.appendChild(ins);
+  }
+
   wrap.appendChild(av);wrap.appendChild(bub);
   msgs().appendChild(wrap);scrollChat();
 }
 
 function fmtTime(iso){
   if(!iso)return'';
-  // ISO datetime → short HH:MM 24h
-  const m=iso.match(/T(\d{2}:\d{2})/);
-  return m?m[1]:iso;
+  // Handles both ISO "2026-06-01T14:30" and SearchAPI "2026-06-01 14:30" formats
+  const m=iso.match(/[T ](\d{2}:\d{2})/);
+  if(m)return m[1];
+  // Fallback: return last 5 chars if it looks like "HH:MM"
+  return iso.length>=5?iso.slice(-5):iso;
 }
 
 
@@ -953,6 +968,9 @@ function toggleBooked(id){
 
 function renderTrips(){
   const trips=getTrips();
+  // Update tab badge to reflect saved trip count
+  const badge=document.querySelector('.tab[data-tab="trips"] .tab-badge');
+  if(badge)badge.style.display=trips.length>0?'':'none';
   const fullList=document.getElementById('trips-list');
   const dashPreview=document.getElementById('dash-trips-preview');
 
@@ -991,7 +1009,7 @@ function renderTripCard(t,withActions){
   const carriers=[...new Set((t.segments||[]).map(s=>s.airline).filter(Boolean))].join(' / ');
   const stops=t.layovers&&t.layovers.length?`${t.layovers.length} stop${t.layovers.length===1?'':'s'}`:'Direct';
   const dur=t.total_duration_min?`${Math.floor(t.total_duration_min/60)}h ${t.total_duration_min%60}m`:'';
-  meta.innerHTML=`<strong>${t.departure_date}</strong>${t.return_date?' → <strong>'+t.return_date+'</strong>':''}<br>${carriers||'—'} · ${stops}${dur?' · '+dur:''} · <strong>${t.price||''}</strong>`;
+  meta.innerHTML=`<strong>${esc(t.departure_date||'')}</strong>${t.return_date?' → <strong>'+esc(t.return_date)+'</strong>':''}<br>${esc(carriers)||'—'} · ${esc(stops)}${dur?' · '+esc(dur):''} · <strong>${esc(t.price||'')}</strong>`;
   card.appendChild(meta);
 
   if(withActions){
