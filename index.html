@@ -844,7 +844,13 @@ function renderFlightCards(input,output){
       card.appendChild(lMeta);
     }
 
-    // Actions: Save + primary Book button
+    // Price disclaimer — SearchAPI caches up to 1 hour; fares change frequently
+    const disclaimer=document.createElement('div');
+    disclaimer.style.cssText='font-size:10px;color:var(--muted);margin-bottom:9px;padding:5px 8px;background:rgba(255,255,255,.04);border-radius:6px;border:1px solid rgba(255,255,255,.06);line-height:1.5;';
+    disclaimer.textContent='⚠️ Indicative price only — fares change frequently. Verify the live fare on the booking platform before purchasing.';
+    card.appendChild(disclaimer);
+
+    // Actions: Save + primary View button
     const acts=document.createElement('div');acts.className='flight-card-actions';
     const saveBtn=document.createElement('button');saveBtn.className='save-flight';saveBtn.textContent='💾 Save';
     saveBtn.onclick=()=>{
@@ -859,7 +865,7 @@ function renderFlightCards(input,output){
     const bookBtn=document.createElement('a');bookBtn.className='book-btn';
     bookBtn.href=primaryUrl;bookBtn.target='_blank';bookBtn.rel='noopener noreferrer';
     const bookSource=offer.source&&offer.source!=='Google Flights'?offer.source:'Google Flights';
-    bookBtn.textContent=offer.has_direct_link?`Book on ${bookSource} ↗`:'Search Google Flights ↗';
+    bookBtn.textContent=offer.has_direct_link?`View on ${bookSource} ↗`:'Search Google Flights ↗';
     acts.appendChild(bookBtn);
     card.appendChild(acts);
 

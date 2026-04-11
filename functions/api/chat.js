@@ -365,21 +365,27 @@ function buildSearchLinks(input) {
   const pax = adults || 1;
   const cabin = travel_class || "economy";
 
-  // Google Flights
-  const gf = `https://www.google.com/travel/flights?q=Flights%20from%20${origin}%20to%20${destination}%20on%20${departure_date}${return_date ? "%20returning%20" + return_date : ""}`;
+  // Google Flights — natural language query is the most reliable approach without
+  // the obfuscated tfs/protobuf deep-link format Google uses internally.
+  // Using encodeURIComponent for correct percent-encoding.
+  const gfQuery = `flights from ${origin} to ${destination} on ${departure_date}${return_date ? ` returning ${return_date}` : ""}${pax > 1 ? `, ${pax} passengers` : ""}`;
+  const gf = `https://www.google.com/travel/flights?q=${encodeURIComponent(gfQuery)}`;
 
-  // Skyscanner — date format YYMMDD
+  // Skyscanner — date format YYMMDD; include passenger count and cabin class as query params
   function toSkyscannerDate(iso) {
     return iso ? iso.slice(2).replace(/-/g, "") : "";
   }
+  // Skyscanner cabin class values: economy, premiumeconomy, business, first
+  const skyCabin = cabin.replace("_", "");
   const skySuffix = return_date
     ? `${toSkyscannerDate(departure_date)}/${toSkyscannerDate(return_date)}/`
     : `${toSkyscannerDate(departure_date)}/`;
-  const sky = `https://www.skyscanner.com.au/transport/flights/${origin.toLowerCase()}/${destination.toLowerCase()}/${skySuffix}`;
+  const sky = `https://www.skyscanner.com.au/transport/flights/${origin.toLowerCase()}/${destination.toLowerCase()}/${skySuffix}?adultsv2=${pax}&cabinclass=${skyCabin}`;
 
-  // Kayak
+  // Kayak — cabin class: y=economy, w=premium_economy, j=business, f=first
+  const kayakCabin = { economy: "y", premium_economy: "w", business: "j", first: "f" };
   const kayakBase = `https://www.kayak.com.au/flights/${origin}-${destination}/${departure_date}`;
-  const kayak = return_date ? `${kayakBase}/${return_date}/${pax}adults` : `${kayakBase}/${pax}adults`;
+  const kayak = `${return_date ? `${kayakBase}/${return_date}` : kayakBase}/${pax}adults?cabin=${kayakCabin[cabin] || "y"}`;
 
   // Expedia — leg dates in MM/DD/YYYY format
   function toExpediaDate(iso) {
@@ -419,9 +425,9 @@ function buildSystemPrompt(prefs) {
     "2. CHECK saved preferences (listed below) for: preferred airlines, direct-only, no overnight flights, cabin class, seat preference, budget range.",
     "3. CALL the search_flights tool with the correct IATA codes — convert city names yourself (e.g. Seoul=ICN, Da Nang=DAD, Sydney=SYD, Melbourne=MEL, Tokyo=HND or NRT, Bangkok=BKK, London=LHR, Bali=DPS, Singapore=SIN, Ho Chi Minh City=SGN, Hanoi=HAN, Kuala Lumpur=KUL, Dubai=DXB). Never invent flight data.",
     "4. FILTER & RANK results against the user's preferences: flag if a flight violates direct-only, overnight, or airline preferences. Surface the best match first.",
-    "5. EXPLAIN each option naturally: airline, depart/arrive times, total duration, stops, price in AUD. Mention any tradeoff (e.g. cheaper but has a stop, or premium but direct).",
+    "5. EXPLAIN each option naturally: airline, depart/arrive times, total duration, stops, price in AUD. Always describe prices as 'around' or 'approximately' — they come from a cached search feed (up to 1 hour old) and actual fares can differ. Mention any tradeoff (e.g. cheaper but has a stop, or premium but direct).",
     "6. MENTION price context: if price_insights is included, say whether the price is lower/typical/higher than the historical range.",
-    "7. SUGGEST next step: remind the user they can save the flight and compare prices across Google Flights, Skyscanner, Kayak, and Expedia using the booking links shown on the cards.",
+    "7. SUGGEST next step: encourage the user to save the flight and click through to Google Flights, Skyscanner, Kayak, or Expedia using the booking links on the cards to see the live fare before booking. Remind them the prices shown are indicative estimates.",
     "If a tool fails or returns no results, say so clearly rather than inventing data. Ask the user if they want to try different dates or a nearby airport.",
     "",
     "For everything else (weather, traffic, hotels, current events) where no tool exists yet, say so plainly and offer what general guidance you can.",
