@@ -168,40 +168,58 @@ async function searchFlights(input, env, prefs) {
   }
 
   // Base params reused for both the initial search and per-offer booking lookups.
+  // SearchAPI Google Flights param reference: https://www.searchapi.io/docs/google-flights
+  //   type: 1=Round trip, 2=One way, 3=Multi-city  (numeric, NOT "round_trip"/"one_way")
+  //   travel_class: 1=Economy, 2=Premium Economy, 3=Business, 4=First  (numeric)
   const baseParams = {
     engine: "google_flights",
     api_key: env.SEARCHAPI_API_KEY,
     departure_id: origin,
     arrival_id: destination,
     outbound_date: departure_date,
-    flight_type: return_date ? "round_trip" : "one_way",
+    type: return_date ? 1 : 2,
     adults: String(adults || 1),
     currency: "AUD",
     gl: "au",
     hl: "en",
   };
   if (return_date) baseParams.return_date = return_date;
-  // SearchAPI Google Flights expects numeric cabin class codes: 1=Economy, 2=Premium Economy, 3=Business, 4=First
+  // Numeric cabin class codes required by SearchAPI
   const classCodes = { economy: 1, premium_economy: 2, business: 3, first: 4 };
   if (travel_class && classCodes[travel_class]) baseParams.travel_class = classCodes[travel_class];
+
+  // Build search links up-front so we can include them in error responses too
+  const searchLinks = buildSearchLinks(input);
 
   let resp;
   try {
     resp = await fetch(`https://www.searchapi.io/api/v1/search?${new URLSearchParams(baseParams)}`);
   } catch (e) {
-    return { error: "Network error reaching SearchAPI.", details: String(e) };
+    console.error("[search_flights] Network error:", String(e));
+    return {
+      error: `Network error reaching SearchAPI: ${String(e)}`,
+      search_links: searchLinks,
+    };
   }
   if (!resp.ok) {
     const details = await resp.text();
-    return { error: `SearchAPI returned ${resp.status}.`, details: details.slice(0, 500) };
+    const msg = `SearchAPI returned HTTP ${resp.status}. ${
+      resp.status === 401 ? "Check that SEARCHAPI_API_KEY is set correctly in Cloudflare Pages environment variables." :
+      resp.status === 429 ? "SearchAPI rate limit exceeded — try again shortly." :
+      "See details for more info."
+    }`;
+    console.error(`[search_flights] ${msg}`, details.slice(0, 300));
+    return {
+      error: msg,
+      details: details.slice(0, 300),
+      search_links: searchLinks,
+    };
   }
 
   const data = await resp.json();
 
   // Combine best + other, take a wider pool to rank from.
   const raw = [...(data.best_flights || []), ...(data.other_flights || [])].slice(0, 10);
-
-  const searchLinks = buildSearchLinks(input);
 
   const mapped = raw.map((o) => ({
     price: o.price != null ? `${o.price} AUD` : "n/a",
@@ -428,7 +446,8 @@ function buildSystemPrompt(prefs) {
     "5. EXPLAIN each option naturally: airline, depart/arrive times, total duration, stops, price in AUD. Always describe prices as 'around' or 'approximately' — they come from a cached search feed (up to 1 hour old) and actual fares can differ. Mention any tradeoff (e.g. cheaper but has a stop, or premium but direct).",
     "6. MENTION price context: if price_insights is included, say whether the price is lower/typical/higher than the historical range.",
     "7. SUGGEST next step: encourage the user to save the flight and click through to Google Flights, Skyscanner, Kayak, or Expedia using the booking links on the cards to see the live fare before booking. Remind them the prices shown are indicative estimates.",
-    "If a tool fails or returns no results, say so clearly rather than inventing data. Ask the user if they want to try different dates or a nearby airport.",
+    "If the search_flights tool returns an error: do NOT just apologise. Immediately provide the search_links from the error response as clickable links so the user can search manually. Say something like: 'The live search hit a technical issue, but you can search directly on these platforms:' then list the links. Also mention the error briefly so the developer knows what failed.",
+    "If the tool returns no results (empty offers array): ask the user if they want to try different dates or a nearby airport.",
     "",
     "For everything else (weather, traffic, hotels, current events) where no tool exists yet, say so plainly and offer what general guidance you can.",
     "",

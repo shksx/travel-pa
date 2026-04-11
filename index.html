@@ -750,10 +750,61 @@ async function send(){
 function addPAReply(text,toolCalls){
   addPAText(text);
   for(const call of toolCalls){
-    if(call.tool==='search_flights'&&call.output&&!call.output.error&&Array.isArray(call.output.offers)){
-      renderFlightCards(call.input,call.output);
+    if(call.tool==='search_flights'){
+      if(call.output&&!call.output.error&&Array.isArray(call.output.offers)){
+        renderFlightCards(call.input,call.output);
+      } else if(call.output&&call.output.error){
+        renderToolError(call.output);
+      }
     }
   }
+}
+
+// Render a visible error card when the search_flights tool fails.
+// This surfaces the actual error (e.g. "SearchAPI returned HTTP 401") so it's
+// immediately debuggable, rather than hidden inside Claude's fallback text.
+function renderToolError(output){
+  const wrap=document.createElement('div');wrap.className='msg pa';
+  const av=document.createElement('div');av.className='msg-av';av.textContent='⚠️';
+  const bub=document.createElement('div');bub.className='msg-bub';
+  bub.style.cssText='background:rgba(231,76,60,.08);border:1px solid rgba(231,76,60,.25);border-radius:10px;padding:10px 13px;max-width:90%;';
+
+  const title=document.createElement('div');
+  title.style.cssText='font-size:12px;font-weight:700;color:#e74c3c;margin-bottom:4px;';
+  title.textContent='Flight search error';
+  bub.appendChild(title);
+
+  const msg=document.createElement('div');
+  msg.style.cssText='font-size:11.5px;color:var(--muted);line-height:1.55;';
+  msg.textContent=output.error||'Unknown error';
+  bub.appendChild(msg);
+
+  if(output.details){
+    const det=document.createElement('div');
+    det.style.cssText='font-size:10px;color:var(--muted);margin-top:5px;font-family:monospace;opacity:.7;word-break:break-all;';
+    det.textContent=output.details;
+    bub.appendChild(det);
+  }
+
+  // If the error includes search_links, show them as actionable buttons
+  const bl=output.search_links||{};
+  const platforms=[{key:'google_flights',label:'Google Flights'},{key:'skyscanner',label:'Skyscanner'},{key:'kayak',label:'Kayak'},{key:'expedia',label:'Expedia'}].filter(p=>bl[p.key]);
+  if(platforms.length){
+    const hint=document.createElement('div');
+    hint.style.cssText='font-size:10.5px;color:var(--muted);margin-top:8px;margin-bottom:5px;';
+    hint.textContent='Search manually on:';
+    bub.appendChild(hint);
+    const links=document.createElement('div');links.style.cssText='display:flex;gap:5px;flex-wrap:wrap;';
+    platforms.forEach(p=>{
+      const a=document.createElement('a');a.href=bl[p.key];a.target='_blank';a.rel='noopener noreferrer';
+      a.style.cssText='font-size:10.5px;font-weight:600;padding:5px 10px;border-radius:14px;border:1px solid rgba(231,76,60,.3);background:transparent;color:#e74c3c;text-decoration:none;';
+      a.textContent=p.label+' ↗';links.appendChild(a);
+    });
+    bub.appendChild(links);
+  }
+
+  wrap.appendChild(av);wrap.appendChild(bub);
+  msgs().appendChild(wrap);scrollChat();
 }
 
 // Renders a Claude reply as plain text (textContent — XSS-safe).
