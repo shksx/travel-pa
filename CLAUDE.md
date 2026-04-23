@@ -4,8 +4,12 @@
 
 A proactive, intelligent **Travel Personal Assistant** app. This is not a simple chatbot — it is a deeply personalized, multi-device travel agent that acts *before* the user asks, combining account access, calendar awareness, real-time data, and highly contextual recommendations.
 
-The full product vision is documented at:
-`../Travel PA application/PROJECT_VISION.md`
+The full product vision and design live in the parent "Travel PA application" folder (configured as an additional working directory — readable via the Read tool):
+
+- `../Nomad_App_Design_Document_v1.2.pdf` — primary app design document
+- `../Nomad-App_Reducing-AI-Token-Costs.pdf` — AI cost architecture doc
+
+Consult these when making architectural or product decisions.
 
 ---
 

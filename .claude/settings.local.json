@@ -4,6 +4,9 @@
       "Bash(npm --version)",
       "WebFetch(domain:www.searchapi.io)",
       "Bash"
+    ],
+    "additionalDirectories": [
+      "/Users/matthewargyle/Documents/Claude/Projects/Travel PA application"
     ]
   }
 }
