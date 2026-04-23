@@ -4,12 +4,13 @@
 
 A proactive, intelligent **Travel Personal Assistant** app. This is not a simple chatbot — it is a deeply personalized, multi-device travel agent that acts *before* the user asks, combining account access, calendar awareness, real-time data, and highly contextual recommendations.
 
-The full product vision and design live in the parent "Travel PA application" folder (configured as an additional working directory — readable via the Read tool):
+The full product vision and design are captured in:
 
-- `../Nomad_App_Design_Document_v1.2.pdf` — primary app design document
-- `../Nomad-App_Reducing-AI-Token-Costs.pdf` — AI cost architecture doc
+- `./NOMAD_APP_DESIGN_v1.2.md` — **primary source of truth**. Markdown version of the v1.2 design document (fastest to read; prefer this). Keep in sync with the PDF below when the design changes.
+- `../Nomad_App_Design_Document_v1.2.pdf` — the signed/original v1.2 design doc (parent folder, available as an additional working directory). Reference only.
+- `../Nomad-App_Reducing-AI-Token-Costs.pdf` — AI cost architecture doc.
 
-Consult these when making architectural or product decisions.
+Consult these when making architectural or product decisions. Start with `NOMAD_APP_DESIGN_v1.2.md`; fall back to the PDFs only if something looks stale or missing.
 
 ---
 
