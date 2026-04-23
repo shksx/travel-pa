@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Dev · Flight Search Harness</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F7F4EC; --bg2:#EFEBE1; --surface:#FFFFFF; --surface2:#F2EEE4;
+  --line:rgba(20,22,28,0.08); --line2:rgba(20,22,28,0.14);
+  --ink:#14161C; --muted:#6B6F78; --faint:rgba(107,111,120,0.55);
+  --accent:#14161C; --accent-line:rgba(20,22,28,0.22);
+  --green:#2f8f5a; --red:#c44536;
+  --sans:'Inter',system-ui,sans-serif;
+  --serif:'Newsreader',Georgia,serif;
+  --mono:'JetBrains Mono',ui-monospace,monospace;
+  --r:14px;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;-webkit-font-smoothing:antialiased;}
+.wrap{max-width:720px;margin:0 auto;padding:32px 24px 80px;}
+h1{font-family:var(--serif);font-size:28px;letter-spacing:-0.3px;margin:0 0 4px;}
+.sub{font-family:var(--mono);font-size:10px;letter-spacing:0.12em;color:var(--faint);text-transform:uppercase;margin-bottom:24px;}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px;margin-bottom:20px;}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+.row.full{grid-template-columns:1fr;}
+label{display:block;font-family:var(--mono);font-size:10px;letter-spacing:0.1em;color:var(--muted);text-transform:uppercase;margin-bottom:5px;}
+input,select{width:100%;background:var(--surface);border:1px solid var(--line2);border-radius:8px;padding:9px 11px;color:var(--ink);font-size:13px;font-family:var(--sans);outline:none;transition:border-color .15s;}
+input:focus,select:focus{border-color:var(--accent-line);}
+.btn{background:var(--accent);color:var(--bg);border:none;border-radius:99px;padding:10px 22px;font-weight:600;font-size:13px;cursor:pointer;font-family:var(--sans);}
+.btn:disabled{opacity:0.5;cursor:not-allowed;}
+.btn-row{display:flex;gap:10px;align-items:center;margin-top:6px;}
+.status{font-family:var(--mono);font-size:11px;color:var(--muted);}
+.results{margin-top:24px;}
+.results-head{font-family:var(--mono);font-size:10px;letter-spacing:0.12em;color:var(--faint);text-transform:uppercase;margin-bottom:12px;}
+.cards{display:flex;flex-direction:column;gap:12px;}
+
+/* tool-card styles mirror index.html */
+.tool-card{background:var(--bg2);border:1px solid var(--line2);border-radius:10px;padding:12px 13px;}
+.tool-head{display:flex;justify-content:space-between;gap:8px;font-family:var(--mono);font-size:10px;letter-spacing:0.08em;color:var(--muted);margin-bottom:6px;white-space:nowrap;}
+.tool-head .src{color:var(--accent);}
+.tool-route{display:flex;align-items:center;gap:8px;}
+.tool-iata{font-family:var(--serif);font-size:22px;letter-spacing:-0.2px;white-space:nowrap;}
+.tool-arr{flex:1;height:1px;background:var(--line2);position:relative;}
+.tool-arr::after{content:'';position:absolute;right:0;top:-3px;width:6px;height:6px;border-right:1px solid var(--accent);border-top:1px solid var(--accent);transform:rotate(45deg);}
+.tool-times{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:4px;}
+.tool-meta{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-top:10px;font-size:11.5px;color:var(--muted);}
+.tool-meta>span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.tool-meta .price{color:var(--accent);font-weight:600;font-size:14px;font-family:var(--serif);white-space:nowrap;flex-shrink:0;}
+.tool-disclaimer{font-size:10.5px;color:var(--muted);margin-top:8px;padding:6px 8px;background:var(--surface2);border-radius:6px;line-height:1.4;}
+.tool-actions{display:flex;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);flex-wrap:wrap;}
+.tool-actions a{font-size:11px;padding:5px 10px;border-radius:99px;font-weight:600;white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center;border:1px solid var(--line2);color:var(--muted);background:transparent;}
+.tool-compare{margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:10.5px;color:var(--muted);}
+.tool-compare a{color:var(--accent);text-decoration:none;font-weight:500;}
+.tool-error{background:rgba(196,69,54,0.06);border:1px solid rgba(196,69,54,0.25);border-radius:10px;padding:10px 12px;}
+.tool-error-title{font-size:12px;font-weight:600;color:var(--red);margin-bottom:4px;}
+.tool-error-msg{font-size:11.5px;color:var(--muted);line-height:1.5;}
+.tool-insight{margin-top:8px;font-family:var(--mono);font-size:10.5px;color:var(--muted);padding:6px 9px;background:var(--surface2);border-radius:8px;}
+
+.raw{margin-top:16px;background:var(--surface2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;}
+.raw summary{font-family:var(--mono);font-size:10px;letter-spacing:0.1em;color:var(--muted);cursor:pointer;text-transform:uppercase;}
+.raw pre{margin:10px 0 0;font-family:var(--mono);font-size:11px;white-space:pre-wrap;word-break:break-word;max-height:400px;overflow:auto;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Flight Search · Dev Harness</h1>
+  <div class="sub">Direct call to /api/dev/flights — no Claude tokens used</div>
+
+  <div class="panel">
+    <div class="row">
+      <div><label>Origin (IATA)</label><input id="origin" value="SYD" maxlength="3"/></div>
+      <div><label>Destination (IATA)</label><input id="destination" value="HND" maxlength="3"/></div>
+    </div>
+    <div class="row">
+      <div><label>Departure date</label><input id="departure_date" type="date"/></div>
+      <div><label>Return date (optional)</label><input id="return_date" type="date"/></div>
+    </div>
+    <div class="row">
+      <div><label>Adults</label><input id="adults" type="number" value="1" min="1" max="9"/></div>
+      <div><label>Cabin class</label><select id="travel_class"><option value="economy">Economy</option><option value="premium_economy">Premium economy</option><option value="business">Business</option><option value="first">First</option></select></div>
+    </div>
+    <div class="row full">
+      <div><label>Dev token (only if DEV_TOKEN env is set)</label><input id="dev_token" placeholder="leave blank if not gated"/></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn" id="run">Search flights</button>
+      <span class="status" id="status"></span>
+    </div>
+  </div>
+
+  <div class="results">
+    <div class="results-head" id="results-head" style="display:none;">Results</div>
+    <div class="cards" id="cards"></div>
+    <details class="raw" id="raw" style="display:none;">
+      <summary>Raw JSON response</summary>
+      <pre id="raw-body"></pre>
+    </details>
+  </div>
+</div>
+
+<script>
+// Default departure date: 60 days from now
+(() => {
+  const d = new Date(); d.setDate(d.getDate() + 60);
+  document.getElementById('departure_date').value = d.toISOString().slice(0, 10);
+})();
+
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtTime = (iso) => {
+  if (!iso) return '';
+  const m = String(iso).match(/[T ](\d{2}:\d{2})/);
+  if (m) return m[1];
+  return String(iso).length >= 5 ? String(iso).slice(-5) : iso;
+};
+
+function renderFlightCard(input, offer){
+  const card = document.createElement('div'); card.className = 'tool-card';
+  const carriers = [...new Set((offer.segments || []).map(s => s.airline).filter(Boolean))].join(' / ') || 'Flight';
+  const src = offer.source || 'Google Flights';
+
+  const head = document.createElement('div'); head.className = 'tool-head';
+  head.innerHTML = `<span>${esc(carriers.toUpperCase())}</span><span class="src">${esc(src)}</span>`;
+  card.appendChild(head);
+
+  const first = (offer.segments || [])[0];
+  const last = (offer.segments || [])[(offer.segments || []).length - 1];
+  if (first && last) {
+    const route = document.createElement('div'); route.className = 'tool-route';
+    route.innerHTML = `
+      <div><div class="tool-iata">${esc(first.from || input.origin || '')}</div></div>
+      <div class="tool-arr"></div>
+      <div style="text-align:right;"><div class="tool-iata">${esc(last.to || input.destination || '')}</div></div>`;
+    card.appendChild(route);
+    const times = document.createElement('div'); times.className = 'tool-times';
+    times.innerHTML = `<span>${esc(input.departure_date || '')} · ${esc(fmtTime(first.depart))}</span><span>${esc(fmtTime(last.arrive))}</span>`;
+    card.appendChild(times);
+  }
+
+  const totalDur = offer.total_duration_min ? `${Math.floor(offer.total_duration_min/60)}h ${offer.total_duration_min%60}m` : '';
+  const stops = offer.layovers && offer.layovers.length
+    ? `${offer.layovers.length} stop${offer.layovers.length === 1 ? '' : 's'}` : 'Direct';
+  const meta = document.createElement('div'); meta.className = 'tool-meta';
+  meta.innerHTML = `<span>${esc([totalDur, stops].filter(Boolean).join(' · '))}</span><span class="price">${esc(offer.price || '')}</span>`;
+  card.appendChild(meta);
+
+  const disc = document.createElement('div'); disc.className = 'tool-disclaimer';
+  disc.textContent = '⚠ Indicative price — verify on the booking platform before purchasing.';
+  card.appendChild(disc);
+
+  const bl = offer.booking_links || {};
+  const primaryUrl = bl.google_flights || '#';
+  if (primaryUrl !== '#') {
+    const acts = document.createElement('div'); acts.className = 'tool-actions';
+    const view = document.createElement('a'); view.target = '_blank'; view.rel = 'noopener noreferrer';
+    view.href = primaryUrl; view.textContent = (offer.has_direct_link ? 'View on ' + src : 'Search Google') + ' ↗';
+    acts.appendChild(view);
+    card.appendChild(acts);
+  }
+
+  const otherPlatforms = [
+    {key:'skyscanner', label:'Skyscanner'},
+    {key:'kayak', label:'Kayak'},
+    {key:'expedia', label:'Expedia'},
+  ].filter(p => bl[p.key]);
+  if (otherPlatforms.length) {
+    const cmp = document.createElement('div'); cmp.className = 'tool-compare';
+    cmp.appendChild(Object.assign(document.createElement('span'), {textContent:'Also:'}));
+    otherPlatforms.forEach(p => {
+      const a = document.createElement('a'); a.href = bl[p.key]; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.textContent = p.label + ' ↗';
+      cmp.appendChild(a);
+    });
+    card.appendChild(cmp);
+  }
+  return card;
+}
+
+function renderToolError(out){
+  const card = document.createElement('div'); card.className = 'tool-error';
+  const t = document.createElement('div'); t.className = 'tool-error-title'; t.textContent = 'Flight search error';
+  card.appendChild(t);
+  const m = document.createElement('div'); m.className = 'tool-error-msg'; m.textContent = out.error || 'Unknown error';
+  card.appendChild(m);
+  const bl = out.search_links || {};
+  const platforms = [
+    {key:'google_flights', label:'Google Flights'},
+    {key:'skyscanner', label:'Skyscanner'},
+    {key:'kayak', label:'Kayak'},
+    {key:'expedia', label:'Expedia'},
+  ].filter(p => bl[p.key]);
+  if (platforms.length) {
+    const links = document.createElement('div'); links.className = 'tool-compare'; links.style.marginTop = '8px';
+    links.appendChild(Object.assign(document.createElement('span'), {textContent:'Search manually:'}));
+    platforms.forEach(p => {
+      const a = document.createElement('a'); a.href = bl[p.key]; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.textContent = p.label + ' ↗';
+      links.appendChild(a);
+    });
+    card.appendChild(links);
+  }
+  return card;
+}
+
+function renderInsight(pi){
+  const lvl = pi.price_level;
+  const lvlText = lvl === 'low' ? 'Prices lower than usual' : lvl === 'high' ? 'Prices higher than usual' : 'Prices typical for this route';
+  const range = pi.typical_price_range && pi.typical_price_range.length === 2
+    ? ` · typical $${pi.typical_price_range[0]}–$${pi.typical_price_range[1]} AUD` : '';
+  const el = document.createElement('div'); el.className = 'tool-insight';
+  el.textContent = lvlText + range;
+  return el;
+}
+
+// Persist dev token between reloads (localStorage, not cookies).
+const devTokenInput = document.getElementById('dev_token');
+devTokenInput.value = localStorage.getItem('tpa_dev_token') || '';
+devTokenInput.addEventListener('change', () => localStorage.setItem('tpa_dev_token', devTokenInput.value));
+
+document.getElementById('run').addEventListener('click', async () => {
+  const btn = document.getElementById('run');
+  const status = document.getElementById('status');
+  const cards = document.getElementById('cards');
+  const rawWrap = document.getElementById('raw');
+  const rawBody = document.getElementById('raw-body');
+  const head = document.getElementById('results-head');
+
+  cards.innerHTML = ''; rawWrap.style.display = 'none'; head.style.display = 'none';
+  btn.disabled = true; status.textContent = 'Searching…';
+
+  const payload = {
+    origin: document.getElementById('origin').value.trim().toUpperCase(),
+    destination: document.getElementById('destination').value.trim().toUpperCase(),
+    departure_date: document.getElementById('departure_date').value,
+    return_date: document.getElementById('return_date').value || undefined,
+    adults: Number(document.getElementById('adults').value) || 1,
+    travel_class: document.getElementById('travel_class').value,
+  };
+
+  const headers = { 'Content-Type': 'application/json' };
+  const devToken = devTokenInput.value.trim();
+  if (devToken) headers['x-dev-token'] = devToken;
+
+  const t0 = performance.now();
+  let data;
+  try {
+    const resp = await fetch('/api/dev/flights', { method:'POST', headers, body: JSON.stringify(payload) });
+    data = await resp.json();
+    const ms = Math.round(performance.now() - t0);
+    status.textContent = `${resp.status} · ${ms}ms`;
+  } catch (e) {
+    status.textContent = 'Network error: ' + String(e);
+    btn.disabled = false;
+    return;
+  }
+  btn.disabled = false;
+
+  rawBody.textContent = JSON.stringify(data, null, 2);
+  rawWrap.style.display = 'block';
+
+  const input = data.input || payload;
+  const out = data.output || {};
+
+  head.style.display = 'block';
+
+  if (out.error) {
+    cards.appendChild(renderToolError(out));
+    head.textContent = `Error · ${input.origin} → ${input.destination}`;
+    return;
+  }
+  const offers = Array.isArray(out.offers) ? out.offers : [];
+  head.textContent = `${input.origin} → ${input.destination} · ${input.departure_date}${input.return_date ? ' → '+input.return_date : ''} · ${offers.length} match${offers.length === 1 ? '' : 'es'}`;
+
+  if (offers.length === 0) {
+    const empty = document.createElement('div'); empty.className = 'tool-card';
+    empty.textContent = 'No flights found for that route and date. Try different dates or a nearby airport.';
+    cards.appendChild(empty);
+    return;
+  }
+  offers.forEach(o => cards.appendChild(renderFlightCard(input, o)));
+  if (out.price_insights) cards.appendChild(renderInsight(out.price_insights));
+});
+</script>
+</body>
+</html>
