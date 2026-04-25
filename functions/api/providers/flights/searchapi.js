@@ -31,14 +31,15 @@ export async function searchFlights(input, env, prefs) {
     departure_id: origin,
     arrival_id: destination,
     outbound_date: departure_date,
-    flight_type: hasReturn ? "round_trip" : "one_way",
+    type: hasReturn ? 1 : 2,            // 1=Round trip, 2=One way (numeric, required by SearchAPI)
     adults: String(adults || 1),
     currency: "AUD",
     gl: "au",
     hl: "en",
   };
   if (hasReturn) baseParams.return_date = return_date;
-  const classMap = { economy: "economy", premium_economy: "premium_economy", business: "business", first: "first_class" };
+  // travel_class must be numeric: 1=Economy, 2=Premium Economy, 3=Business, 4=First
+  const classMap = { economy: 1, premium_economy: 2, business: 3, first: 4 };
   if (travel_class && classMap[travel_class]) baseParams.travel_class = classMap[travel_class];
 
   const searchLinks = buildSearchLinks(input);
