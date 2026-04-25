@@ -7,7 +7,7 @@
 //   ANTHROPIC_API_KEY  — Anthropic console key
 //   SEARCHAPI_API_KEY  — SearchAPI.io key (https://www.searchapi.io)
 
-import { searchFlights } from "./_flights.js";
+import { searchFlights } from "./providers/registry.js";
 
 const MODEL = "claude-haiku-4-5-20251001";
 const MAX_TOKENS = 4096;

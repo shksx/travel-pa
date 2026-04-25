@@ -3,7 +3,8 @@
     "allow": [
       "Bash(npm --version)",
       "WebFetch(domain:www.searchapi.io)",
-      "Bash"
+      "Bash",
+      "PowerShell(Get-ChildItem -Path \"E:\\\\TravelPA Nomad App\\\\travel-pa\" -Force | Where-Object { $_.Name -notin @\\('.git','node_modules','.claude'\\) } | Select-Object Name, Mode)"
     ],
     "additionalDirectories": [
       "/Users/matthewargyle/Documents/Claude/Projects/Travel PA application"

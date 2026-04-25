@@ -10,7 +10,7 @@
 // Optional gate: set DEV_TOKEN in Cloudflare Pages env vars to require an
 // x-dev-token header on requests. If DEV_TOKEN is not set, the endpoint is open.
 
-import { searchFlights } from "../_flights.js";
+import { searchFlights } from "../providers/registry.js";
 
 export async function onRequestPost(context) {
   const { request, env } = context;
