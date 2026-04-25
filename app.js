@@ -116,14 +116,38 @@ $('#push-demo-btn').addEventListener('click', () => {
 });
 
 /* ====================== Preferences (Profile screen) ====================== */
-const PREFS_KEY = 'nomad.prefs';
+// Source of truth: Firestore (users/{uid}.prefs). localStorage is an offline cache
+// keyed per-uid so two accounts on the same browser don't bleed prefs into each other.
+function getPrefsCacheKey(){
+  const uid = window.__nomadCloud?.uid;
+  return uid ? `nomad.prefs.${uid}` : 'nomad.prefs';
+}
 function loadPrefs(){
-  try { return JSON.parse(localStorage.getItem(PREFS_KEY) || '{}'); } catch(e) { return {}; }
+  try { return JSON.parse(localStorage.getItem(getPrefsCacheKey()) || '{}'); } catch(e) { return {}; }
 }
+let cloudSaveTimer = null;
 function savePrefs(p){
-  try { localStorage.setItem(PREFS_KEY, JSON.stringify(p)); } catch(e){}
+  try { localStorage.setItem(getPrefsCacheKey(), JSON.stringify(p)); } catch(e){}
   updatePrefsSummary(p);
+  // Debounced cloud save — coalesces rapid input changes into one write.
+  if (window.__nomadCloud) {
+    clearTimeout(cloudSaveTimer);
+    cloudSaveTimer = setTimeout(() => {
+      window.__nomadCloud.savePrefs(p).catch(e => console.warn('[savePrefs cloud]', e));
+    }, 600);
+  }
 }
+// Pull prefs from Firestore once auth is ready, then re-paint the UI.
+function hydrateFromCloud(){
+  if (!window.__nomadCloud) return;
+  window.__nomadCloud.loadPrefs().then(cloud => {
+    if (!cloud || !Object.keys(cloud).length) return;
+    try { localStorage.setItem(getPrefsCacheKey(), JSON.stringify(cloud)); } catch(e){}
+    applyPrefsToUI();
+  }).catch(e => console.warn('[loadPrefs cloud]', e));
+}
+if (window.__nomadCloud) hydrateFromCloud();
+else window.addEventListener('nomad:ready', hydrateFromCloud, { once: true });
 function applyPrefsToUI(){
   const p = loadPrefs();
   // Toggles
@@ -205,11 +229,12 @@ const resetBtn = document.getElementById('reset-prefs-btn');
 if (resetBtn) {
   resetBtn.addEventListener('click', () => {
     if (!confirm('Reset all preferences? This clears every toggle, chip, and input.')) return;
-    try { localStorage.removeItem(PREFS_KEY); } catch(e){}
+    try { localStorage.removeItem(getPrefsCacheKey()); } catch(e){}
     $$('.tog[data-prefkey]').forEach(t => t.classList.remove('on'));
     $$('.chips[data-prefkey] .chip').forEach(c => c.classList.remove('sel'));
     $$('input.p-inp[data-prefkey]').forEach(inp => inp.value = '');
     updatePrefsSummary({});
+    if (window.__nomadCloud) window.__nomadCloud.savePrefs({}).catch(e => console.warn('[reset cloud]', e));
   });
 }
 

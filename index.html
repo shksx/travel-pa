@@ -15,11 +15,18 @@
 
 <script type="module">
   // Auth gate — redirects to landing.html if signed out. Runs before app boots.
-  import { requireAuth, signOut } from "./auth.js";
+  import { requireAuth, signOut, ensureUserProfile, loadUserPrefs, saveUserPrefs } from "./auth.js";
   const user = await requireAuth();
   if (user) {
     window.__nomadUser = user;
+    window.__nomadCloud = {
+      uid: user.uid,
+      loadPrefs: () => loadUserPrefs(user.uid),
+      savePrefs: (p) => saveUserPrefs(user.uid, p)
+    };
+    ensureUserProfile(user).catch(e => console.warn('[ensureUserProfile]', e));
     document.documentElement.dataset.authed = "1";
+    window.dispatchEvent(new Event('nomad:ready'));
 
     const populate = () => {
       const nameEl = document.getElementById('sp-name');

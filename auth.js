@@ -10,11 +10,48 @@ import {
   setPersistence,
   browserLocalPersistence
 } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
+import {
+  getFirestore,
+  doc,
+  getDoc,
+  setDoc,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 import { firebaseConfig } from "./firebase-config.js";
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
+export const db = getFirestore(app);
 await setPersistence(auth, browserLocalPersistence);
+
+// ---------- User profile / preferences in Firestore ----------
+// Doc shape: users/{uid} = { email, displayName, photoURL, prefs: {...}, updatedAt }
+
+export async function loadUserPrefs(uid) {
+  const snap = await getDoc(doc(db, "users", uid));
+  return snap.exists() ? (snap.data().prefs || {}) : {};
+}
+
+export async function saveUserPrefs(uid, prefs) {
+  await setDoc(
+    doc(db, "users", uid),
+    { prefs, updatedAt: serverTimestamp() },
+    { merge: true }
+  );
+}
+
+export async function ensureUserProfile(user) {
+  await setDoc(
+    doc(db, "users", user.uid),
+    {
+      email: user.email || null,
+      displayName: user.displayName || null,
+      photoURL: user.photoURL || null,
+      updatedAt: serverTimestamp()
+    },
+    { merge: true }
+  );
+}
 
 const provider = new GoogleAuthProvider();
 
