@@ -43,33 +43,57 @@ export async function searchFlights(input, env, prefs) {
 
   const searchLinks = buildSearchLinks(input);
 
-  let resp;
+  // Google Flights has two tabs — "Best" (default) and "Cheapest". Fetching only
+  // the default sort misses cheaper-with-stops options that appear under the
+  // Cheapest tab. Fire both in parallel and merge.
+  // SearchAPI sort_by: 1=Top, 2=Price, 3=Departure, 4=Arrival, 5=Duration, 6=Emissions
+  async function fetchSort(sortBy) {
+    const params = { ...baseParams };
+    if (sortBy) params.sort_by = sortBy;
+    return fetch(`https://www.searchapi.io/api/v1/search?${new URLSearchParams(params)}`);
+  }
+
+  let bestResp, cheapResp;
   try {
-    resp = await fetch(`https://www.searchapi.io/api/v1/search?${new URLSearchParams(baseParams)}`);
+    [bestResp, cheapResp] = await Promise.all([fetchSort(), fetchSort(2)]);
   } catch (e) {
     console.error("[searchapi] Network error:", String(e));
-    return {
-      error: `Network error reaching SearchAPI: ${String(e)}`,
-      search_links: searchLinks,
-    };
+    return { error: `Network error reaching SearchAPI: ${String(e)}`, search_links: searchLinks };
   }
-  if (!resp.ok) {
-    const details = await resp.text();
-    const msg = `SearchAPI returned HTTP ${resp.status}. ${
-      resp.status === 401 ? "Check that SEARCHAPI_API_KEY is set correctly in Cloudflare Pages environment variables." :
-      resp.status === 429 ? "SearchAPI rate limit exceeded — try again shortly." :
+  if (!bestResp.ok) {
+    const details = await bestResp.text();
+    const msg = `SearchAPI returned HTTP ${bestResp.status}. ${
+      bestResp.status === 401 ? "Check that SEARCHAPI_API_KEY is set correctly in Cloudflare Pages environment variables." :
+      bestResp.status === 429 ? "SearchAPI rate limit exceeded — try again shortly." :
       "See details for more info."
     }`;
     console.error(`[searchapi] ${msg}`, details.slice(0, 300));
-    return {
-      error: msg,
-      details: details.slice(0, 300),
-      search_links: searchLinks,
-    };
+    return { error: msg, details: details.slice(0, 300), search_links: searchLinks };
   }
 
-  const data = await resp.json();
-  const raw = [...(data.best_flights || []), ...(data.other_flights || [])].slice(0, 10);
+  const bestData = await bestResp.json();
+  const cheapData = cheapResp.ok ? await cheapResp.json() : { best_flights: [], other_flights: [] };
+
+  // Dedupe by booking_token (or segment fingerprint as fallback) so the same
+  // flight appearing in both sorts only ranks once.
+  const fingerprint = (o) =>
+    o.booking_token ||
+    (o.flights || []).map(s => `${s.flight_number}@${s.departure_airport?.time}`).join("|");
+  const seen = new Set();
+  const merged = [];
+  for (const o of [
+    ...(bestData.best_flights || []),
+    ...(cheapData.best_flights || []),
+    ...(bestData.other_flights || []),
+    ...(cheapData.other_flights || []),
+  ]) {
+    const fp = fingerprint(o);
+    if (seen.has(fp)) continue;
+    seen.add(fp);
+    merged.push(o);
+  }
+  const raw = merged.slice(0, 20);
+  const data = bestData; // price_insights comes from the default sort response
 
   const mapped = raw.map((o) => ({
     price: o.price != null ? `${o.price} AUD` : "n/a",

@@ -351,7 +351,7 @@ input,textarea{font-family:inherit;color:inherit;}
     <div class="side-profile">
       <div class="avatar">A</div>
       <div class="sp-info">
-        <div class="sp-name">Alex Meyer</div>
+        <div class="sp-name" id="sp-name">Guest</div>
         <div class="sp-sub">DAY 42 · LISBON</div>
       </div>
     </div>
@@ -382,7 +382,7 @@ input,textarea{font-family:inherit;color:inherit;}
       <div class="page-header">
         <div>
           <div class="page-kicker" id="dash-kicker">Today</div>
-          <h1 class="page-title">Good afternoon, Alex.</h1>
+          <h1 class="page-title" id="home-greeting">Welcome to Nomad.</h1>
           <div class="page-title-sub">Bangkok in <strong style="color:var(--ink);font-weight:600;">28 days</strong>. One gap needs closing.</div>
         </div>
         <div class="date-chip">DAY 42 / 127</div>
@@ -608,9 +608,9 @@ input,textarea{font-family:inherit;color:inherit;}
             </div>
           </div>
           <div class="aside-sec">
-            <h4>Applied prefs <span id="prefs-count">12</span></h4>
+            <h4>Applied prefs <span id="prefs-count">0</span></h4>
             <div id="prefs-summary" style="font-size:12px;color:var(--muted);line-height:1.7;">
-              Direct flights · window seat · kitchen required · ★4+ stays · AC always · max €400 Bangkok · Wise preferred
+              No preferences set yet — open the Profile tab to add some.
             </div>
           </div>
         </div>
@@ -619,12 +619,13 @@ input,textarea{font-family:inherit;color:inherit;}
 
     <!-- ===== PROFILE ===== -->
     <div class="page" id="page-prof">
-      <div class="page-header">
+      <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;">
         <div>
           <div class="page-kicker">Preferences · auto-applied to every search</div>
           <h1 class="page-title">Your travel DNA.</h1>
           <div class="page-title-sub">The assistant reads these on every request. Fewer questions later.</div>
         </div>
+        <button id="reset-prefs-btn" style="background:transparent;color:var(--muted);border:1px solid var(--line2);border-radius:99px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">Reset all preferences</button>
       </div>
       <div class="prof-layout">
         <div class="prof-nav">
@@ -643,56 +644,56 @@ input,textarea{font-family:inherit;color:inherit;}
             <div class="p-row col">
               <div class="p-label">Who's travelling?</div>
               <div class="chips" data-prefkey="travel_mode" data-mode="single">
-                <div class="chip sel" data-v="solo">Solo</div>
+                <div class="chip" data-v="solo">Solo</div>
                 <div class="chip" data-v="couple_same">Couple · same plan</div>
                 <div class="chip" data-v="couple_separate">Couple · separate</div>
               </div>
             </div>
-            <div class="p-row"><div><div class="p-label">Long-stay mode</div><div class="p-sub">Prioritise kitchens, co-working, monthly rates</div></div><div class="tog on" data-prefkey="long_stay"></div></div>
-            <div class="p-row"><div><div class="p-label">Slow travel bias</div><div class="p-sub">Prefer 7+ nights per stop</div></div><div class="tog on" data-prefkey="slow_travel"></div></div>
+            <div class="p-row"><div><div class="p-label">Long-stay mode</div><div class="p-sub">Prioritise kitchens, co-working, monthly rates</div></div><div class="tog" data-prefkey="long_stay"></div></div>
+            <div class="p-row"><div><div class="p-label">Slow travel bias</div><div class="p-sub">Prefer 7+ nights per stop</div></div><div class="tog" data-prefkey="slow_travel"></div></div>
           </div>
 
           <div class="prof-card">
             <h3>Flights <span class="tag">6 ACTIVE</span></h3>
-            <div class="p-row"><div class="p-label">Direct flights only</div><div class="tog on" data-prefkey="direct_flights"></div></div>
+            <div class="p-row"><div class="p-label">Direct flights only</div><div class="tog" data-prefkey="direct_flights"></div></div>
             <div class="p-row"><div><div class="p-label">Layover exception</div><div class="p-sub">If saving exceeds…</div></div><div class="p-val">€300</div></div>
-            <div class="p-row"><div class="p-label">No overnight flights</div><div class="tog on" data-prefkey="no_overnight"></div></div>
+            <div class="p-row"><div class="p-label">No overnight flights</div><div class="tog" data-prefkey="no_overnight"></div></div>
             <div class="p-row col">
               <div class="p-label">Seat preference</div>
               <div class="chips" data-prefkey="seat" data-mode="single">
-                <div class="chip" data-v="aisle">Aisle</div><div class="chip sel" data-v="window">Window</div><div class="chip" data-v="none">No pref</div>
+                <div class="chip" data-v="aisle">Aisle</div><div class="chip" data-v="window">Window</div><div class="chip" data-v="none">No pref</div>
               </div>
             </div>
             <div class="p-row col">
               <div class="p-label">Cabin class</div>
               <div class="chips" data-prefkey="cabin" data-mode="single">
-                <div class="chip sel" data-v="economy">Economy</div><div class="chip" data-v="premium_economy">Premium Econ</div><div class="chip" data-v="business">Business</div>
+                <div class="chip" data-v="economy">Economy</div><div class="chip" data-v="premium_economy">Premium Econ</div><div class="chip" data-v="business">Business</div>
               </div>
             </div>
             <div class="p-row col">
               <div class="p-label">Preferred airlines</div>
-              <input class="p-inp" data-prefkey="airlines" value="Singapore Airlines, Qantas, TAP Portugal"/>
+              <input class="p-inp" data-prefkey="airlines" placeholder="e.g. Qantas, Singapore Airlines"/>
             </div>
           </div>
 
           <div class="prof-card">
             <h3>Stays <span class="tag">7 ACTIVE</span></h3>
-            <div class="p-row"><div class="p-label">Air conditioning required</div><div class="tog on" data-prefkey="ac_required"></div></div>
-            <div class="p-row"><div class="p-label">Kitchen required</div><div class="tog on" data-prefkey="kitchen_required"></div></div>
+            <div class="p-row"><div class="p-label">Air conditioning required</div><div class="tog" data-prefkey="ac_required"></div></div>
+            <div class="p-row"><div class="p-label">Kitchen required</div><div class="tog" data-prefkey="kitchen_required"></div></div>
             <div class="p-row"><div><div class="p-label">Minimum rating</div><div class="p-sub">On Booking / Agoda / Airbnb</div></div><div class="p-val">★ 4.2</div></div>
-            <div class="p-row"><div class="p-label">Desk / workspace</div><div class="tog on" data-prefkey="desk"></div></div>
-            <div class="p-row"><div class="p-label">Quiet area priority</div><div class="tog on" data-prefkey="quiet_area"></div></div>
-            <div class="p-row"><div class="p-label">Include house-sitting</div><div class="tog on" data-prefkey="house_sitting"></div></div>
+            <div class="p-row"><div class="p-label">Desk / workspace</div><div class="tog" data-prefkey="desk"></div></div>
+            <div class="p-row"><div class="p-label">Quiet area priority</div><div class="tog" data-prefkey="quiet_area"></div></div>
+            <div class="p-row"><div class="p-label">Include house-sitting</div><div class="tog" data-prefkey="house_sitting"></div></div>
             <div class="p-row"><div><div class="p-label">Max nightly budget</div><div class="p-sub">Per destination</div></div><div class="p-val">€90 / NIGHT</div></div>
           </div>
 
           <div class="prof-card">
             <h3>Proactive <span class="tag">5 ACTIVE</span></h3>
-            <div class="p-row"><div><div class="p-label">Booking gap detection</div><div class="p-sub">Scan itinerary for unbooked nights</div></div><div class="tog on" data-prefkey="gap_detection"></div></div>
-            <div class="p-row"><div><div class="p-label">FX rate monitoring</div><div class="p-sub">Alert when favourable</div></div><div class="tog on" data-prefkey="fx_monitoring"></div></div>
-            <div class="p-row"><div><div class="p-label">Visa countdown</div><div class="p-sub">Auto-check per destination</div></div><div class="tog on" data-prefkey="visa_countdown"></div></div>
-            <div class="p-row"><div><div class="p-label">Email booking auto-import</div><div class="p-sub">Forward confirmations from Gmail</div></div><div class="tog on" data-prefkey="email_import"></div></div>
-            <div class="p-row"><div><div class="p-label">Web push notifications</div><div class="p-sub">PWA · browser &amp; home screen</div></div><div class="tog on" data-prefkey="web_push"></div></div>
+            <div class="p-row"><div><div class="p-label">Booking gap detection</div><div class="p-sub">Scan itinerary for unbooked nights</div></div><div class="tog" data-prefkey="gap_detection"></div></div>
+            <div class="p-row"><div><div class="p-label">FX rate monitoring</div><div class="p-sub">Alert when favourable</div></div><div class="tog" data-prefkey="fx_monitoring"></div></div>
+            <div class="p-row"><div><div class="p-label">Visa countdown</div><div class="p-sub">Auto-check per destination</div></div><div class="tog" data-prefkey="visa_countdown"></div></div>
+            <div class="p-row"><div><div class="p-label">Email booking auto-import</div><div class="p-sub">Forward confirmations from Gmail</div></div><div class="tog" data-prefkey="email_import"></div></div>
+            <div class="p-row"><div><div class="p-label">Web push notifications</div><div class="p-sub">PWA · browser &amp; home screen</div></div><div class="tog" data-prefkey="web_push"></div></div>
           </div>
         </div>
       </div>
@@ -884,7 +885,7 @@ function updatePrefsSummary(p){
   if (p.no_overnight) parts.push('no overnight flights');
   if (p.airlines) parts.push(p.airlines.split(',')[0].trim() + ' preferred');
   const sum = $('#prefs-summary');
-  if (sum && parts.length) sum.textContent = parts.join(' · ');
+  if (sum) sum.textContent = parts.length ? parts.join(' · ') : 'No preferences set yet — open the Profile tab to add some.';
   const cnt = $('#prefs-count');
   if (cnt) cnt.textContent = Object.values(p).filter(v => v === true || (typeof v === 'string' && v && v !== 'none')).length;
 }
@@ -913,6 +914,19 @@ $$('.prof-nav-item').forEach(it => it.addEventListener('click', () => {
   it.classList.add('active');
 }));
 applyPrefsToUI();
+
+// Reset-all button — wipes saved prefs and resets every UI control to its default empty state.
+const resetBtn = document.getElementById('reset-prefs-btn');
+if (resetBtn) {
+  resetBtn.addEventListener('click', () => {
+    if (!confirm('Reset all preferences? This clears every toggle, chip, and input.')) return;
+    try { localStorage.removeItem(PREFS_KEY); } catch(e){}
+    $$('.tog[data-prefkey]').forEach(t => t.classList.remove('on'));
+    $$('.chips[data-prefkey] .chip').forEach(c => c.classList.remove('sel'));
+    $$('input.p-inp[data-prefkey]').forEach(inp => inp.value = '');
+    updatePrefsSummary({});
+  });
+}
 
 /* ====================== Saved trips (localStorage) ====================== */
 const TRIPS_KEY = 'nomad.trips';
@@ -1169,7 +1183,7 @@ ci.addEventListener('keydown', e => {
 $('#chat-send').addEventListener('click', send);
 
 /* Welcome message */
-addAI("Hi Alex — ask me anything about the trip. I can search live flights for you (try \u201CFind flights from Sydney to Tokyo on 1 June 2026\u201D), and your saved preferences are auto-applied. Stays, FX and visa tools coming next.");
+addAI("Hi — ask me anything about your trip. I can search live flights for you (try \u201CFind flights from Sydney to Tokyo on 1 June 2026\u201D), and your saved preferences are auto-applied. Stays, FX and visa tools coming next.");
 
 /* ====================== PWA install ====================== */
 let deferredInstall = null;
