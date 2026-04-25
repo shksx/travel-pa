@@ -3,6 +3,8 @@ import {
   getAuth,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signOut as fbSignOut,
   onAuthStateChanged,
   setPersistence,
@@ -16,8 +18,22 @@ await setPersistence(auth, browserLocalPersistence);
 
 const provider = new GoogleAuthProvider();
 
+// Detect mobile / iOS Safari — signInWithPopup is blocked by iOS, use redirect instead.
+function isMobile() {
+  return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+}
+
 export function signInWithGoogle() {
+  if (isMobile()) {
+    // On mobile, redirect flow is the only reliable option.
+    return signInWithRedirect(auth, provider);
+  }
   return signInWithPopup(auth, provider);
+}
+
+// Call on landing page load to pick up the result of a redirect sign-in.
+export function getGoogleRedirectResult() {
+  return getRedirectResult(auth);
 }
 
 export function signOut() {
