@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#F7F4EC">
+<title>Nomad — Your travel, handled.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600;6..72,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F7F4EC; --bg2:#EFEBE1; --surface:#FFFFFF; --surface2:#F2EEE4;
+  --line:rgba(20,22,28,0.08); --line2:rgba(20,22,28,0.14);
+  --ink:#14161C; --muted:#6B6F78; --faint:rgba(107,111,120,0.55);
+  --accent:#14161C; --accent-soft:rgba(20,22,28,0.06); --accent-line:rgba(20,22,28,0.22);
+  --green:#2f8f5a;
+  --sans:'Inter',-apple-system,system-ui,sans-serif;
+  --serif:'Newsreader',Georgia,serif;
+  --mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*,*::before,*::after{box-sizing:border-box;}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;-webkit-font-smoothing:antialiased;min-height:100vh;}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;}
+
+.shell{min-height:100vh;display:grid;grid-template-columns:1.05fr 1fr;}
+@media (max-width:880px){.shell{grid-template-columns:1fr;}}
+
+/* Left — hero */
+.hero{padding:42px 56px;display:flex;flex-direction:column;gap:28px;background:linear-gradient(160deg,#F7F4EC 0%,#EFEBE1 60%,#E8E3D6 100%);position:relative;overflow:hidden;}
+.hero::before{content:'';position:absolute;top:-120px;right:-120px;width:380px;height:380px;border-radius:99px;background:radial-gradient(circle,var(--accent-soft),transparent 70%);}
+.brand{display:flex;align-items:center;gap:11px;position:relative;}
+.brand-mark{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#14161C,#3a3d47);display:flex;align-items:center;justify-content:center;color:#F7F4EC;}
+.brand-name{font-family:var(--serif);font-size:24px;letter-spacing:-0.3px;}
+.brand-dot{width:6px;height:6px;border-radius:99px;background:var(--green);box-shadow:0 0 6px rgba(46,204,113,.6);}
+
+.hero-body{flex:1;display:flex;flex-direction:column;justify-content:center;max-width:540px;position:relative;}
+.kicker{font-family:var(--mono);font-size:10.5px;letter-spacing:0.22em;color:var(--accent);text-transform:uppercase;margin-bottom:18px;}
+.title{font-family:var(--serif);font-size:54px;line-height:1.05;letter-spacing:-0.8px;margin:0 0 18px;}
+.title em{font-style:italic;color:var(--muted);font-weight:400;}
+.lede{font-size:15px;line-height:1.6;color:var(--muted);max-width:460px;}
+
+.feat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:36px;max-width:520px;}
+.feat{padding:14px 14px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,0.55);backdrop-filter:blur(6px);}
+.feat-ic{width:24px;height:24px;border-radius:7px;background:var(--accent);color:#F7F4EC;display:flex;align-items:center;justify-content:center;margin-bottom:8px;}
+.feat-ic svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.feat-title{font-size:12.5px;font-weight:600;margin-bottom:3px;}
+.feat-desc{font-size:11.5px;color:var(--muted);line-height:1.45;}
+
+.foot{font-family:var(--mono);font-size:10px;letter-spacing:0.15em;color:var(--faint);text-transform:uppercase;position:relative;}
+
+/* Right — sign-in */
+.signin{padding:42px 56px;display:flex;flex-direction:column;justify-content:center;background:var(--bg);border-left:1px solid var(--line);}
+.signin-card{max-width:380px;width:100%;margin:0 auto;}
+.signin-kicker{font-family:var(--mono);font-size:10px;letter-spacing:0.22em;color:var(--muted);text-transform:uppercase;margin-bottom:10px;}
+.signin-title{font-family:var(--serif);font-size:30px;letter-spacing:-0.4px;margin:0 0 8px;line-height:1.15;}
+.signin-sub{font-size:13.5px;color:var(--muted);line-height:1.55;margin-bottom:30px;}
+
+.gbtn{width:100%;display:flex;align-items:center;justify-content:center;gap:11px;padding:13px 16px;border:1px solid var(--line2);background:var(--surface);border-radius:12px;font-size:14px;font-weight:600;color:var(--ink);transition:background .15s,border-color .15s,transform .05s;}
+.gbtn:hover{background:#fff;border-color:var(--accent-line);}
+.gbtn:active{transform:translateY(1px);}
+.gbtn:disabled{opacity:.55;cursor:not-allowed;}
+.gbtn svg{width:18px;height:18px;flex-shrink:0;}
+
+.divider{display:flex;align-items:center;gap:12px;margin:22px 0;color:var(--faint);font-family:var(--mono);font-size:10px;letter-spacing:0.18em;text-transform:uppercase;}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--line);}
+
+.legal{font-size:11px;color:var(--muted);line-height:1.55;margin-top:24px;}
+.legal a{color:var(--ink);text-decoration:underline;text-underline-offset:2px;}
+
+.err{margin-top:14px;padding:10px 12px;border:1px solid #e5b3ad;background:#f9e9e6;color:#8c2c20;border-radius:10px;font-size:12.5px;display:none;}
+.err.show{display:block;}
+
+.status-pill{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid var(--line);border-radius:99px;font-family:var(--mono);font-size:10px;letter-spacing:0.12em;color:var(--muted);text-transform:uppercase;margin-bottom:18px;}
+.status-pill .dot{width:5px;height:5px;border-radius:99px;background:var(--green);}
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- LEFT: hero -->
+  <section class="hero">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg>
+      </div>
+      <div class="brand-name">Nomad</div>
+      <div class="brand-dot" title="live"></div>
+    </div>
+
+    <div class="hero-body">
+      <div class="kicker">Your proactive travel PA</div>
+      <h1 class="title">Travel, <em>handled</em> — before you ask.</h1>
+      <p class="lede">Nomad watches your calendar, your inbox, and the world. It books before prices climb, alerts you before gates change, and remembers exactly how you like to travel.</p>
+
+      <div class="feat-grid">
+        <div class="feat">
+          <div class="feat-ic"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+          <div class="feat-title">Calendar-aware</div>
+          <div class="feat-desc">Sees an unbooked trip and starts researching before you do.</div>
+        </div>
+        <div class="feat">
+          <div class="feat-ic"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
+          <div class="feat-title">Real-time alerts</div>
+          <div class="feat-desc">Delays, gate changes, traffic, weather — pushed before it costs you.</div>
+        </div>
+        <div class="feat">
+          <div class="feat-ic"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+          <div class="feat-title">Document vault</div>
+          <div class="feat-desc">Boarding passes, passports, visas — auto-filled into every form.</div>
+        </div>
+        <div class="feat">
+          <div class="feat-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/></svg></div>
+          <div class="feat-title">Tailored to you</div>
+          <div class="feat-desc">Every recommendation reflects your budget, style, and history.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="foot">v1.2 · Private beta</div>
+  </section>
+
+  <!-- RIGHT: sign-in -->
+  <section class="signin">
+    <div class="signin-card">
+      <div class="status-pill"><span class="dot"></span> Secure sign-in</div>
+      <h2 class="signin-title">Sign in to Nomad</h2>
+      <p class="signin-sub">Use your Google account. Nomad will later ask permission to read your calendar and travel emails — not now, only when you turn those features on.</p>
+
+      <button class="gbtn" id="google-btn">
+        <svg viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.91c1.7-1.57 2.69-3.88 2.69-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.91-2.26c-.81.54-1.84.86-3.05.86-2.34 0-4.33-1.58-5.04-3.71H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.96 10.71A5.41 5.41 0 0 1 3.68 9c0-.59.1-1.17.28-1.71V4.96H.96A9 9 0 0 0 0 9c0 1.45.35 2.82.96 4.04l3-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58A9 9 0 0 0 9 0 9 9 0 0 0 .96 4.96l3 2.33C4.67 5.16 6.66 3.58 9 3.58z"/></svg>
+        <span id="google-btn-label">Continue with Google</span>
+      </button>
+
+      <div class="err" id="err"></div>
+
+      <div class="divider">Coming soon</div>
+      <button class="gbtn" disabled style="background:transparent;">Continue with Apple</button>
+
+      <p class="legal">By continuing you agree to Nomad's <a href="#">Terms</a> and <a href="#">Privacy Policy</a>. We never post or send anything on your behalf without explicit confirmation.</p>
+    </div>
+  </section>
+
+</div>
+
+<script type="module">
+  import { signInWithGoogle, redirectIfSignedIn } from "./auth.js";
+
+  // If already signed in, skip straight to the app.
+  redirectIfSignedIn();
+
+  const btn = document.getElementById('google-btn');
+  const label = document.getElementById('google-btn-label');
+  const err = document.getElementById('err');
+
+  btn.addEventListener('click', async () => {
+    err.classList.remove('show');
+    btn.disabled = true;
+    label.textContent = 'Signing in…';
+    try {
+      await signInWithGoogle();
+      window.location.replace('./index.html');
+    } catch (e) {
+      console.error(e);
+      btn.disabled = false;
+      label.textContent = 'Continue with Google';
+      err.textContent = e?.code === 'auth/popup-closed-by-user'
+        ? 'Sign-in cancelled. Try again when you’re ready.'
+        : (e?.message || 'Sign-in failed. Please try again.');
+      err.classList.add('show');
+    }
+  });
+</script>
+
+</body>
+</html>
