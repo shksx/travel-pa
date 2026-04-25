@@ -24,19 +24,20 @@ export async function searchFlights(input, env, prefs) {
   // SearchAPI Google Flights param reference: https://www.searchapi.io/docs/google-flights
   //   type: 1=Round trip, 2=One way, 3=Multi-city  (numeric, NOT "round_trip"/"one_way")
   //   travel_class: 1=Economy, 2=Premium Economy, 3=Business, 4=First  (numeric)
+  const hasReturn = return_date && String(return_date).trim() !== "";
   const baseParams = {
     engine: "google_flights",
     api_key: env.SEARCHAPI_API_KEY,
     departure_id: origin,
     arrival_id: destination,
     outbound_date: departure_date,
-    type: return_date ? 1 : 2,
+    type: hasReturn ? 1 : 2,
     adults: String(adults || 1),
     currency: "AUD",
     gl: "au",
     hl: "en",
   };
-  if (return_date) baseParams.return_date = return_date;
+  if (hasReturn) baseParams.return_date = return_date;
   const classMap = { economy: "economy", premium_economy: "premium_economy", business: "business", first: "first_class" };
   if (travel_class && classMap[travel_class]) baseParams.travel_class = classMap[travel_class];
 
