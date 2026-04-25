@@ -147,43 +147,43 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
 <script type="module">
   import { signInWithGoogle, getGoogleRedirectResult, redirectIfSignedIn } from "./auth.js";
 
-  const btn = document.getElementById(‘google-btn’);
-  const label = document.getElementById(‘google-btn-label’);
-  const err = document.getElementById(‘err’);
+  const btn = document.getElementById('google-btn');
+  const label = document.getElementById('google-btn-label');
+  const err = document.getElementById('err');
 
   // Handle return from signInWithRedirect (mobile flow).
   // Must run before redirectIfSignedIn so we capture the result first.
   try {
     const result = await getGoogleRedirectResult();
     if (result?.user) {
-      window.location.replace(‘./index.html’);
+      window.location.replace('./index.html');
     }
   } catch (e) {
-    console.error(‘[redirect result]’, e);
-    err.textContent = e?.message || ‘Sign-in failed. Please try again.’;
-    err.classList.add(‘show’);
+    console.error('[redirect result]', e);
+    err.textContent = e?.message || 'Sign-in failed. Please try again.';
+    err.classList.add('show');
   }
 
   // If already signed in (persisted session), skip straight to the app.
   redirectIfSignedIn();
 
-  btn.addEventListener(‘click’, async () => {
-    err.classList.remove(‘show’);
+  btn.addEventListener('click', async () => {
+    err.classList.remove('show');
     btn.disabled = true;
-    label.textContent = ‘Signing in…’;
+    label.textContent = 'Signing in…';
     try {
       // On mobile this triggers a redirect — page navigates away, so
       // the lines below are only reached on desktop (popup flow).
       await signInWithGoogle();
-      window.location.replace(‘./index.html’);
+      window.location.replace('./index.html');
     } catch (e) {
       console.error(e);
       btn.disabled = false;
-      label.textContent = ‘Continue with Google’;
-      err.textContent = e?.code === ‘auth/popup-closed-by-user’
-        ? ‘Sign-in cancelled. Try again when you\’re ready.’
-        : (e?.message || ‘Sign-in failed. Please try again.’);
-      err.classList.add(‘show’);
+      label.textContent = 'Continue with Google';
+      err.textContent = e?.code === 'auth/popup-closed-by-user'
+        ? 'Sign-in cancelled. Try again when you\'re ready.'
+        : (e?.message || 'Sign-in failed. Please try again.');
+      err.classList.add('show');
     }
   });
 </script>
