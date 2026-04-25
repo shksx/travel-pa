@@ -15,14 +15,16 @@
 
 <script type="module">
   // Auth gate — redirects to landing.html if signed out. Runs before app boots.
-  import { requireAuth, signOut, ensureUserProfile, loadUserPrefs, saveUserPrefs } from "./auth.js";
+  import { requireAuth, signOut, ensureUserProfile, loadUserPrefs, saveUserPrefs, loadUserCalendar, saveUserCalendar } from "./auth.js";
   const user = await requireAuth();
   if (user) {
     window.__nomadUser = user;
     window.__nomadCloud = {
       uid: user.uid,
       loadPrefs: () => loadUserPrefs(user.uid),
-      savePrefs: (p) => saveUserPrefs(user.uid, p)
+      savePrefs: (p) => saveUserPrefs(user.uid, p),
+      loadCalendar: () => loadUserCalendar(user.uid),
+      saveCalendar: (events) => saveUserCalendar(user.uid, events)
     };
     ensureUserProfile(user).catch(e => console.warn('[ensureUserProfile]', e));
     document.documentElement.dataset.authed = "1";
@@ -81,6 +83,11 @@
       <div class="nav-item active" data-page="dash">
         <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
         <span>Today</span>
+      </div>
+      <div class="nav-item" data-page="cal">
+        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <span>Calendar</span>
+        <span class="nav-badge" id="cal-count">0</span>
       </div>
       <div class="nav-item" data-page="chat">
         <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
@@ -166,6 +173,111 @@
             <p style="margin:0;color:var(--muted);font-size:12.5px;line-height:1.55;">Calendar &amp; Gmail integration, document vault, real-time flight alerts, and budget tracking.</p>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- ===== CALENDAR ===== -->
+    <div class="page" id="page-cal">
+      <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;">
+        <div>
+          <div class="page-kicker">Trip calendar · synced to your account</div>
+          <h1 class="page-title" id="cal-title">Your travel life.</h1>
+          <div class="page-title-sub">Flights, stays, transfers, activities — everything in one place.</div>
+        </div>
+        <button id="cal-add-btn" class="primary" style="padding:9px 16px;border-radius:99px;background:var(--accent);color:#F7F4EC;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add event
+        </button>
+      </div>
+
+      <div class="cal-layout">
+        <div class="cal-main">
+          <div class="cal-toolbar">
+            <button class="cal-nav" id="cal-prev" title="Previous month">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <div class="cal-month" id="cal-month">—</div>
+            <button class="cal-nav" id="cal-next" title="Next month">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+            <button class="cal-today-btn" id="cal-today">Today</button>
+          </div>
+          <div class="cal-weekdays">
+            <div>MON</div><div>TUE</div><div>WED</div><div>THU</div><div>FRI</div><div>SAT</div><div>SUN</div>
+          </div>
+          <div class="cal-grid" id="cal-grid"></div>
+          <div class="cal-legend">
+            <span class="cal-legend-item"><span class="cal-dot type-flight"></span>Flight</span>
+            <span class="cal-legend-item"><span class="cal-dot type-stay"></span>Stay</span>
+            <span class="cal-legend-item"><span class="cal-dot type-transfer"></span>Transfer</span>
+            <span class="cal-legend-item"><span class="cal-dot type-activity"></span>Activity</span>
+            <span class="cal-legend-item"><span class="cal-dot type-note"></span>Note</span>
+          </div>
+        </div>
+
+        <aside class="cal-aside" id="cal-aside">
+          <div class="cal-aside-head">
+            <div>
+              <div class="page-kicker" id="cal-day-kicker" style="margin:0 0 6px;">Selected day</div>
+              <h3 id="cal-day-title" style="margin:0;font-family:var(--serif);font-size:22px;letter-spacing:-0.3px;font-weight:500;">No day selected</h3>
+            </div>
+          </div>
+          <div class="cal-day-events" id="cal-day-events"></div>
+          <form class="cal-form" id="cal-form" style="display:none;">
+            <div class="cal-form-head">
+              <span id="cal-form-title">New event</span>
+              <button type="button" class="cal-form-close" id="cal-form-close" title="Cancel">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            <div class="cal-field">
+              <label>Type</label>
+              <div class="chips" id="cal-type-chips" data-mode="single">
+                <div class="chip sel" data-v="flight">Flight</div>
+                <div class="chip" data-v="stay">Stay</div>
+                <div class="chip" data-v="transfer">Transfer</div>
+                <div class="chip" data-v="activity">Activity</div>
+                <div class="chip" data-v="note">Note</div>
+              </div>
+            </div>
+            <div class="cal-field">
+              <label for="cal-title-inp">Title</label>
+              <input class="p-inp" id="cal-title-inp" placeholder="e.g. SQ222 SYD → SIN" maxlength="120" />
+            </div>
+            <div class="cal-field-row">
+              <div class="cal-field">
+                <label for="cal-date-inp">Start date</label>
+                <input class="p-inp" id="cal-date-inp" type="date" />
+              </div>
+              <div class="cal-field">
+                <label for="cal-end-inp">End date</label>
+                <input class="p-inp" id="cal-end-inp" type="date" />
+              </div>
+            </div>
+            <div class="cal-field-row">
+              <div class="cal-field">
+                <label for="cal-time-inp">Start time</label>
+                <input class="p-inp" id="cal-time-inp" type="time" />
+              </div>
+              <div class="cal-field">
+                <label for="cal-end-time-inp">End time</label>
+                <input class="p-inp" id="cal-end-time-inp" type="time" />
+              </div>
+            </div>
+            <div class="cal-field">
+              <label for="cal-loc-inp">Location</label>
+              <input class="p-inp" id="cal-loc-inp" placeholder="City, airport, or address" maxlength="120" />
+            </div>
+            <div class="cal-field">
+              <label for="cal-notes-inp">Notes</label>
+              <textarea class="p-inp" id="cal-notes-inp" rows="2" placeholder="Booking ref, gate, confirmation…" maxlength="400"></textarea>
+            </div>
+            <div class="cal-form-actions">
+              <button type="button" class="cal-cancel" id="cal-cancel">Cancel</button>
+              <button type="submit" class="cal-save" id="cal-save">Save event</button>
+            </div>
+          </form>
+        </aside>
       </div>
     </div>
 
@@ -319,6 +431,7 @@
 <!-- Mobile bottom tabs -->
 <div class="mob-tabs">
   <button class="mob-tab active" data-page="dash"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Today</span></button>
+  <button class="mob-tab" data-page="cal"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Calendar</span></button>
   <button class="mob-tab" data-page="chat"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>Chat</span></button>
   <button class="mob-tab" data-page="prof"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg><span>You</span></button>
 </div>

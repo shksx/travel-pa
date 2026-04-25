@@ -5,7 +5,9 @@
       "WebFetch(domain:www.searchapi.io)",
       "Bash",
       "PowerShell(Get-ChildItem -Path \"E:\\\\TravelPA Nomad App\\\\travel-pa\" -Force | Where-Object { $_.Name -notin @\\('.git','node_modules','.claude'\\) } | Select-Object Name, Mode)",
-      "PowerShell(gh --version)"
+      "PowerShell(gh --version)",
+      "Skill(claude-api)",
+      "Skill(claude-api:*)"
     ],
     "additionalDirectories": [
       "/Users/matthewargyle/Documents/Claude/Projects/Travel PA application"

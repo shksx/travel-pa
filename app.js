@@ -8,14 +8,20 @@ function setPage(id){
   $$('.page').forEach(p => p.classList.toggle('active', p.id === 'page-'+id));
   $$('.nav-item[data-page]').forEach(n => n.classList.toggle('active', n.dataset.page === id));
   $$('.mob-tab[data-page]').forEach(n => n.classList.toggle('active', n.dataset.page === id));
-  const crumbs = { dash:'WORKSPACE · <span>TODAY</span>', chat:'WORKSPACE · <span>ASSISTANT</span>', prof:'WORKSPACE · <span>PREFERENCES</span>' };
+  const crumbs = {
+    dash:'WORKSPACE · <span>TODAY</span>',
+    cal:'WORKSPACE · <span>CALENDAR</span>',
+    chat:'WORKSPACE · <span>ASSISTANT</span>',
+    prof:'WORKSPACE · <span>PREFERENCES</span>'
+  };
   $('#crumb').innerHTML = crumbs[id];
   try { localStorage.setItem('nomad.page', id); } catch(e){}
+  if (id === 'cal' && typeof renderCalendar === 'function') renderCalendar();
 }
 $$('[data-page]').forEach(el => el.addEventListener('click', () => setPage(el.dataset.page)));
 try {
   const persisted = localStorage.getItem('nomad.page');
-  if (persisted && ['dash','chat','prof'].includes(persisted)) setPage(persisted);
+  if (persisted && ['dash','cal','chat','prof'].includes(persisted)) setPage(persisted);
 } catch(e){}
 
 /* Dashboard kicker — live datetime */
@@ -549,3 +555,505 @@ if ('serviceWorker' in navigator) {
   const swUrl = URL.createObjectURL(blob);
   try { navigator.serviceWorker.register(swUrl).catch(()=>{}); } catch(e){}
 }
+
+/* ====================== CALENDAR ====================== */
+// Per-user trip calendar. Source of truth: Firestore (users/{uid}.calendar). localStorage cache keyed per uid.
+// Optional Google Calendar overlay — read-only events shown alongside Nomad events. Token lives in sessionStorage.
+const CAL = {
+  view: new Date(),       // arbitrary date inside the currently displayed month
+  selected: null,         // YYYY-MM-DD or null
+  events: [],             // user's Nomad events (writable, persisted)
+  gcalEvents: [],         // Google Calendar events for the visible month (read-only overlay)
+  editingId: null,
+  gcalToken: null,        // OAuth access token for Google Calendar
+  gcalConnected: false,
+  gcalError: null,
+};
+const CAL_TYPES = ['flight','stay','transfer','activity','note'];
+const GCAL_SCOPE = 'https://www.googleapis.com/auth/calendar.events.readonly';
+
+function calCacheKey(){
+  const uid = window.__nomadCloud?.uid;
+  return uid ? `nomad.cal.${uid}` : 'nomad.cal';
+}
+function ymd(d){
+  const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function parseYmd(s){
+  if (!s) return null;
+  const [y,m,d] = s.split('-').map(Number);
+  return new Date(y, m-1, d);
+}
+function eventsForDay(date){
+  const key = ymd(date);
+  const ours = CAL.events.filter(e => dateInRange(key, e.date, e.endDate));
+  const theirs = CAL.gcalEvents.filter(e => dateInRange(key, e.date, e.endDate));
+  return ours.concat(theirs);
+}
+function dateInRange(target, start, end){
+  if (!start) return false;
+  if (!end || end === start) return target === start;
+  return target >= start && target <= end;
+}
+function loadCalEvents(){
+  try { CAL.events = JSON.parse(localStorage.getItem(calCacheKey()) || '[]'); } catch(e) { CAL.events = []; }
+  if (!Array.isArray(CAL.events)) CAL.events = [];
+  updateCalBadge();
+}
+let calCloudSaveTimer = null;
+function persistCalEvents(){
+  try { localStorage.setItem(calCacheKey(), JSON.stringify(CAL.events)); } catch(e){}
+  updateCalBadge();
+  if (window.__nomadCloud) {
+    clearTimeout(calCloudSaveTimer);
+    calCloudSaveTimer = setTimeout(() => {
+      window.__nomadCloud.saveCalendar(CAL.events).catch(e => console.warn('[saveCalendar]', e));
+    }, 500);
+  }
+}
+function hydrateCalFromCloud(){
+  if (!window.__nomadCloud) return;
+  window.__nomadCloud.loadCalendar().then(events => {
+    if (Array.isArray(events) && events.length) {
+      CAL.events = events;
+      try { localStorage.setItem(calCacheKey(), JSON.stringify(events)); } catch(e){}
+      renderCalendar();
+    }
+  }).catch(e => console.warn('[loadCalendar]', e));
+}
+function updateCalBadge(){
+  const el = $('#cal-count');
+  if (el) el.textContent = CAL.events.length;
+}
+
+function renderCalendar(){
+  const grid = $('#cal-grid');
+  if (!grid) return;
+  const view = CAL.view;
+  const year = view.getFullYear(), month = view.getMonth();
+  const monthName = view.toLocaleDateString('en-GB', { month:'long', year:'numeric' });
+  $('#cal-month').textContent = monthName;
+
+  // Build 6 weeks starting Monday before/on the 1st.
+  const first = new Date(year, month, 1);
+  // JS getDay: Sun=0..Sat=6. We want Mon=0..Sun=6.
+  const offset = (first.getDay() + 6) % 7;
+  const start = new Date(year, month, 1 - offset);
+  const todayKey = ymd(new Date());
+
+  grid.innerHTML = '';
+  for (let i = 0; i < 42; i++){
+    const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
+    const key = ymd(d);
+    const inMonth = d.getMonth() === month;
+    const evts = eventsForDay(d);
+    const cell = document.createElement('div');
+    cell.className = 'cal-cell' + (inMonth ? '' : ' dim') + (key === todayKey ? ' today' : '') + (key === CAL.selected ? ' selected' : '');
+    cell.dataset.date = key;
+    cell.innerHTML = `<div class="cal-cell-num">${d.getDate()}</div>`;
+    const list = document.createElement('div'); list.className = 'cal-cell-events';
+    const max = 3;
+    evts.slice(0, max).forEach(e => {
+      const chip = document.createElement('div');
+      chip.className = `cal-evt type-${e.type}` + (e.source === 'gcal' ? ' source-google' : '');
+      const t = e.startTime ? `${e.startTime} ` : '';
+      chip.textContent = t + (e.title || '(untitled)');
+      chip.title = (e.source === 'gcal' ? '[Google] ' : '') + (e.title || '');
+      list.appendChild(chip);
+    });
+    if (evts.length > max){
+      const more = document.createElement('div'); more.className = 'cal-evt-more';
+      more.textContent = `+${evts.length - max} more`;
+      list.appendChild(more);
+    }
+    cell.appendChild(list);
+    cell.addEventListener('click', () => selectDay(key));
+    grid.appendChild(cell);
+  }
+  renderCalAside();
+}
+
+function renderCalAside(){
+  const aside = $('#cal-aside');
+  if (!aside) return;
+  // Insert / refresh the Google Calendar card at the top of the aside.
+  let gcalCard = aside.querySelector('.cal-gcal-card');
+  if (!gcalCard) {
+    gcalCard = document.createElement('div');
+    gcalCard.className = 'cal-gcal-card';
+    aside.insertBefore(gcalCard, aside.firstChild);
+  }
+  gcalCard.innerHTML = renderGcalCardHTML();
+  wireGcalCard(gcalCard);
+
+  const titleEl = $('#cal-day-title');
+  const kickEl = $('#cal-day-kicker');
+  const list = $('#cal-day-events');
+  if (!CAL.selected) {
+    titleEl.textContent = 'No day selected';
+    kickEl.textContent = 'Pick a day';
+    list.innerHTML = '<div class="cal-day-empty">Tap a day to view events or add a flight, stay, or activity.</div>';
+    return;
+  }
+  const d = parseYmd(CAL.selected);
+  titleEl.textContent = d.toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  kickEl.textContent = 'Selected day';
+  const evts = eventsForDay(d);
+  list.innerHTML = '';
+  if (!evts.length) {
+    const empty = document.createElement('div');
+    empty.className = 'cal-day-empty';
+    empty.textContent = 'Nothing on this day yet. Use “Add event” to add a flight, stay, transfer, activity, or note.';
+    list.appendChild(empty);
+  } else {
+    evts.forEach(e => list.appendChild(renderDayRow(e)));
+  }
+}
+
+function renderDayRow(e){
+  const row = document.createElement('div');
+  row.className = `cal-day-row type-${e.type}`;
+  const bar = document.createElement('div'); bar.className = 'bar';
+  const body = document.createElement('div'); body.className = 'body';
+  const title = document.createElement('div'); title.className = 'title';
+  title.textContent = e.title || '(untitled)';
+  body.appendChild(title);
+  const metaParts = [];
+  metaParts.push(e.type.toUpperCase());
+  if (e.startTime || e.endTime) metaParts.push([e.startTime, e.endTime].filter(Boolean).join(' – '));
+  if (e.endDate && e.endDate !== e.date) metaParts.push(`${e.date} → ${e.endDate}`);
+  if (e.location) metaParts.push(e.location);
+  const meta = document.createElement('div'); meta.className = 'meta';
+  meta.textContent = metaParts.join(' · ');
+  body.appendChild(meta);
+  if (e.notes) {
+    const n = document.createElement('div'); n.className = 'notes';
+    n.textContent = e.notes;
+    body.appendChild(n);
+  }
+  if (e.source === 'gcal') {
+    const src = document.createElement('div'); src.className = 'src';
+    src.textContent = '↗ Google Calendar';
+    body.appendChild(src);
+  }
+  row.appendChild(bar); row.appendChild(body);
+  if (e.source !== 'gcal') {
+    const acts = document.createElement('div'); acts.className = 'acts';
+    const edit = document.createElement('button'); edit.textContent = 'Edit';
+    edit.onclick = (ev) => { ev.stopPropagation(); openCalForm(e.id); };
+    const del = document.createElement('button'); del.className = 'del'; del.textContent = 'Delete';
+    del.onclick = (ev) => {
+      ev.stopPropagation();
+      if (!confirm('Delete this event?')) return;
+      CAL.events = CAL.events.filter(x => x.id !== e.id);
+      persistCalEvents();
+      renderCalendar();
+    };
+    acts.appendChild(edit); acts.appendChild(del);
+    row.appendChild(acts);
+  }
+  return row;
+}
+
+function selectDay(key){
+  CAL.selected = (CAL.selected === key) ? null : key;
+  renderCalendar();
+}
+
+/* Form */
+function openCalForm(id){
+  CAL.editingId = id || null;
+  const form = $('#cal-form');
+  $('#cal-form-title').textContent = id ? 'Edit event' : 'New event';
+  // Reset
+  setChipGroupValue('#cal-type-chips', 'flight');
+  $('#cal-title-inp').value = '';
+  $('#cal-date-inp').value = CAL.selected || ymd(new Date());
+  $('#cal-end-inp').value = '';
+  $('#cal-time-inp').value = '';
+  $('#cal-end-time-inp').value = '';
+  $('#cal-loc-inp').value = '';
+  $('#cal-notes-inp').value = '';
+  if (id) {
+    const e = CAL.events.find(x => x.id === id);
+    if (e) {
+      setChipGroupValue('#cal-type-chips', e.type || 'flight');
+      $('#cal-title-inp').value = e.title || '';
+      $('#cal-date-inp').value = e.date || '';
+      $('#cal-end-inp').value = e.endDate || '';
+      $('#cal-time-inp').value = e.startTime || '';
+      $('#cal-end-time-inp').value = e.endTime || '';
+      $('#cal-loc-inp').value = e.location || '';
+      $('#cal-notes-inp').value = e.notes || '';
+    }
+  }
+  form.style.display = 'flex';
+  $('#cal-title-inp').focus();
+}
+function closeCalForm(){
+  $('#cal-form').style.display = 'none';
+  CAL.editingId = null;
+}
+function setChipGroupValue(sel, value){
+  const group = $(sel);
+  if (!group) return;
+  $$('.chip', group).forEach(c => c.classList.toggle('sel', c.dataset.v === value));
+}
+function getChipGroupValue(sel){
+  const c = $(sel + ' .chip.sel');
+  return c ? c.dataset.v : null;
+}
+function saveCalForm(ev){
+  ev.preventDefault();
+  const date = $('#cal-date-inp').value;
+  if (!date) { alert('Pick a start date.'); return; }
+  const type = getChipGroupValue('#cal-type-chips') || 'note';
+  const title = $('#cal-title-inp').value.trim();
+  if (!title) { alert('Add a title.'); return; }
+  const endDate = $('#cal-end-inp').value || null;
+  if (endDate && endDate < date) { alert('End date is before start date.'); return; }
+  const evt = {
+    id: CAL.editingId || ('e_' + Date.now() + '_' + Math.random().toString(36).slice(2,7)),
+    type, title, date,
+    endDate: endDate || null,
+    startTime: $('#cal-time-inp').value || null,
+    endTime: $('#cal-end-time-inp').value || null,
+    location: $('#cal-loc-inp').value.trim() || null,
+    notes: $('#cal-notes-inp').value.trim() || null,
+    updatedAt: new Date().toISOString(),
+  };
+  if (CAL.editingId) {
+    CAL.events = CAL.events.map(x => x.id === CAL.editingId ? { ...x, ...evt } : x);
+  } else {
+    evt.createdAt = evt.updatedAt;
+    CAL.events.push(evt);
+  }
+  CAL.selected = date;
+  persistCalEvents();
+  closeCalForm();
+  renderCalendar();
+}
+
+/* ===== Google Calendar integration =====
+ * Uses Firebase reauth with the calendar.events.readonly scope to obtain a Google
+ * OAuth access token, then queries the v3 Calendar API directly. Token kept in
+ * sessionStorage (short-lived) — never written to localStorage or Firestore.
+ */
+function gcalTokenKey(){
+  const uid = window.__nomadCloud?.uid;
+  return uid ? `nomad.gcal.token.${uid}` : 'nomad.gcal.token';
+}
+function loadGcalToken(){
+  try {
+    const raw = sessionStorage.getItem(gcalTokenKey());
+    if (!raw) return null;
+    const o = JSON.parse(raw);
+    if (!o.access_token || !o.expires_at) return null;
+    if (Date.now() >= o.expires_at) return null;
+    return o;
+  } catch(e) { return null; }
+}
+function saveGcalToken(tok){
+  try { sessionStorage.setItem(gcalTokenKey(), JSON.stringify(tok)); } catch(e){}
+}
+function clearGcalToken(){
+  try { sessionStorage.removeItem(gcalTokenKey()); } catch(e){}
+  CAL.gcalToken = null; CAL.gcalConnected = false; CAL.gcalEvents = [];
+}
+
+async function connectGoogleCalendar(){
+  CAL.gcalError = null;
+  try {
+    const mod = await import('./auth.js');
+    const fbAuthMod = await import('https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js');
+    const { GoogleAuthProvider, signInWithPopup, reauthenticateWithPopup } = fbAuthMod;
+    const provider = new GoogleAuthProvider();
+    provider.addScope(GCAL_SCOPE);
+    // Hint Google to surface the same account that's already signed in.
+    if (mod.auth.currentUser?.email) {
+      provider.setCustomParameters({ login_hint: mod.auth.currentUser.email, prompt: 'consent' });
+    }
+    let result;
+    try {
+      result = await reauthenticateWithPopup(mod.auth.currentUser, provider);
+    } catch (re) {
+      // If reauth isn't possible (e.g. provider mismatch), fall back to a fresh popup.
+      result = await signInWithPopup(mod.auth, provider);
+    }
+    const cred = GoogleAuthProvider.credentialFromResult(result);
+    if (!cred?.accessToken) throw new Error('No access token returned by Google.');
+    const tok = {
+      access_token: cred.accessToken,
+      // Google access tokens are typically 1 hour. We don't get expires_in here,
+      // so be conservative and assume 50 minutes.
+      expires_at: Date.now() + 50 * 60 * 1000,
+    };
+    saveGcalToken(tok);
+    CAL.gcalToken = tok;
+    CAL.gcalConnected = true;
+    await fetchGcalEventsForView();
+    renderCalendar();
+  } catch (e) {
+    console.warn('[gcal connect]', e);
+    CAL.gcalError = e?.message || 'Could not connect to Google Calendar.';
+    CAL.gcalConnected = false;
+    renderCalAside();
+  }
+}
+
+function disconnectGoogleCalendar(){
+  clearGcalToken();
+  renderCalendar();
+}
+
+async function fetchGcalEventsForView(){
+  const tok = CAL.gcalToken || loadGcalToken();
+  if (!tok) { CAL.gcalEvents = []; return; }
+  CAL.gcalToken = tok;
+  // Fetch all events that overlap the visible 6-week window.
+  const view = CAL.view;
+  const first = new Date(view.getFullYear(), view.getMonth(), 1);
+  const offset = (first.getDay() + 6) % 7;
+  const start = new Date(view.getFullYear(), view.getMonth(), 1 - offset);
+  const end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 42);
+  const params = new URLSearchParams({
+    timeMin: start.toISOString(),
+    timeMax: end.toISOString(),
+    singleEvents: 'true',
+    orderBy: 'startTime',
+    maxResults: '250',
+  });
+  try {
+    const resp = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?${params}`, {
+      headers: { Authorization: `Bearer ${tok.access_token}` },
+    });
+    if (resp.status === 401 || resp.status === 403) {
+      clearGcalToken();
+      CAL.gcalError = 'Google Calendar access expired — reconnect.';
+      return;
+    }
+    if (!resp.ok) throw new Error('Google Calendar API error ' + resp.status);
+    const data = await resp.json();
+    CAL.gcalEvents = (data.items || []).map(it => normaliseGcalEvent(it)).filter(Boolean);
+    CAL.gcalConnected = true;
+    CAL.gcalError = null;
+  } catch (e) {
+    console.warn('[gcal fetch]', e);
+    CAL.gcalError = e?.message || 'Failed to load Google Calendar events.';
+  }
+}
+
+function normaliseGcalEvent(it){
+  if (!it || !it.start) return null;
+  // All-day events: start/end have `date` (YYYY-MM-DD), end is exclusive.
+  // Timed events: start/end have `dateTime` (ISO with TZ).
+  let date, endDate, startTime = null, endTime = null;
+  if (it.start.date) {
+    date = it.start.date;
+    if (it.end?.date) {
+      const ed = parseYmd(it.end.date);
+      ed.setDate(ed.getDate() - 1); // Google end-date for all-day is exclusive.
+      endDate = ymd(ed);
+    }
+  } else if (it.start.dateTime) {
+    const sd = new Date(it.start.dateTime);
+    date = ymd(sd);
+    startTime = sd.toTimeString().slice(0,5);
+    if (it.end?.dateTime) {
+      const ed = new Date(it.end.dateTime);
+      endDate = ymd(ed);
+      endTime = ed.toTimeString().slice(0,5);
+      if (endDate === date) endDate = null;
+    }
+  } else {
+    return null;
+  }
+  return {
+    id: 'g_' + it.id,
+    source: 'gcal',
+    type: 'note',
+    title: it.summary || '(untitled)',
+    date, endDate,
+    startTime, endTime,
+    location: it.location || null,
+    notes: it.description || null,
+  };
+}
+
+function renderGcalCardHTML(){
+  if (CAL.gcalConnected) {
+    return `
+      <div class="cal-gcal-row">
+        <div class="cal-gcal-ic">${gcalIconSvg()}</div>
+        <div class="cal-gcal-meta">
+          <div class="cal-gcal-title">Google Calendar</div>
+          <span class="cal-gcal-status">Connected</span>
+        </div>
+        <button class="cal-gcal-btn disconnect" data-act="disconnect">Disconnect</button>
+      </div>
+      <div class="cal-gcal-sub">Events from your primary Google calendar appear with a dashed border. They're read-only here.</div>
+    `;
+  }
+  const errLine = CAL.gcalError ? `<span class="cal-gcal-status error">${esc(CAL.gcalError)}</span>` : '';
+  return `
+    <div class="cal-gcal-row">
+      <div class="cal-gcal-ic">${gcalIconSvg()}</div>
+      <div class="cal-gcal-meta">
+        <div class="cal-gcal-title">Google Calendar</div>
+        <div class="cal-gcal-sub">Show your existing Google events alongside Nomad trips.</div>
+      </div>
+      <button class="cal-gcal-btn connect" data-act="connect">Connect</button>
+    </div>
+    ${errLine}
+  `;
+}
+function gcalIconSvg(){
+  // Simple monochrome calendar mark — matches the rest of the icon set.
+  return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="12" cy="15" r="2"/></svg>`;
+}
+function wireGcalCard(card){
+  const btn = card.querySelector('button[data-act]');
+  if (!btn) return;
+  btn.onclick = () => {
+    if (btn.dataset.act === 'connect') connectGoogleCalendar();
+    else disconnectGoogleCalendar();
+  };
+}
+
+/* Wire calendar UI once the DOM is ready */
+function initCalendar(){
+  if (!$('#cal-grid')) return;
+  loadCalEvents();
+
+  $('#cal-prev').addEventListener('click', () => { CAL.view = new Date(CAL.view.getFullYear(), CAL.view.getMonth()-1, 1); fetchGcalEventsForView().then(renderCalendar); });
+  $('#cal-next').addEventListener('click', () => { CAL.view = new Date(CAL.view.getFullYear(), CAL.view.getMonth()+1, 1); fetchGcalEventsForView().then(renderCalendar); });
+  $('#cal-today').addEventListener('click', () => { CAL.view = new Date(); CAL.selected = ymd(new Date()); fetchGcalEventsForView().then(renderCalendar); });
+  $('#cal-add-btn').addEventListener('click', () => {
+    if (!CAL.selected) CAL.selected = ymd(new Date());
+    openCalForm(null);
+    renderCalAside();
+  });
+  $('#cal-form').addEventListener('submit', saveCalForm);
+  $('#cal-form-close').addEventListener('click', closeCalForm);
+  $('#cal-cancel').addEventListener('click', closeCalForm);
+  $$('#cal-type-chips .chip').forEach(c => c.addEventListener('click', () => {
+    $$('#cal-type-chips .chip').forEach(x => x.classList.remove('sel'));
+    c.classList.add('sel');
+  }));
+
+  // Restore Google Calendar connection if we still have a valid token in this session.
+  const tok = loadGcalToken();
+  if (tok) {
+    CAL.gcalToken = tok;
+    CAL.gcalConnected = true;
+    fetchGcalEventsForView().then(renderCalendar);
+  }
+
+  // Pull Nomad events from Firestore once auth is ready.
+  if (window.__nomadCloud) hydrateCalFromCloud();
+  else window.addEventListener('nomad:ready', hydrateCalFromCloud, { once: true });
+
+  renderCalendar();
+}
+initCalendar();

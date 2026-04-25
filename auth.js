@@ -25,7 +25,7 @@ export const db = getFirestore(app);
 await setPersistence(auth, browserLocalPersistence);
 
 // ---------- User profile / preferences in Firestore ----------
-// Doc shape: users/{uid} = { email, displayName, photoURL, prefs: {...}, updatedAt }
+// Doc shape: users/{uid} = { email, displayName, photoURL, prefs: {...}, calendar: [...], updatedAt }
 
 export async function loadUserPrefs(uid) {
   const snap = await getDoc(doc(db, "users", uid));
@@ -36,6 +36,21 @@ export async function saveUserPrefs(uid, prefs) {
   await setDoc(
     doc(db, "users", uid),
     { prefs, updatedAt: serverTimestamp() },
+    { merge: true }
+  );
+}
+
+export async function loadUserCalendar(uid) {
+  const snap = await getDoc(doc(db, "users", uid));
+  if (!snap.exists()) return [];
+  const data = snap.data();
+  return Array.isArray(data.calendar) ? data.calendar : [];
+}
+
+export async function saveUserCalendar(uid, events) {
+  await setDoc(
+    doc(db, "users", uid),
+    { calendar: events, updatedAt: serverTimestamp() },
     { merge: true }
   );
 }
