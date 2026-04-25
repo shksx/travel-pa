@@ -7,7 +7,8 @@
       "PowerShell(Get-ChildItem -Path \"E:\\\\TravelPA Nomad App\\\\travel-pa\" -Force | Where-Object { $_.Name -notin @\\('.git','node_modules','.claude'\\) } | Select-Object Name, Mode)",
       "PowerShell(gh --version)",
       "Skill(claude-api)",
-      "Skill(claude-api:*)"
+      "Skill(claude-api:*)",
+      "PowerShell(Get-Command gh -ErrorAction SilentlyContinue; Test-Path \"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\"; Test-Path \"$env:LOCALAPPDATA\\\\Programs\\\\GitHub CLI\\\\gh.exe\")"
     ],
     "additionalDirectories": [
       "/Users/matthewargyle/Documents/Claude/Projects/Travel PA application"
