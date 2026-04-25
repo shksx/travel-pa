@@ -31,7 +31,7 @@ export async function searchFlights(input, env, prefs) {
     departure_id: origin,
     arrival_id: destination,
     outbound_date: departure_date,
-    type: hasReturn ? 1 : 2,
+    type: hasReturn ? "round_trip" : "one_way",
     adults: String(adults || 1),
     currency: "AUD",
     gl: "au",
