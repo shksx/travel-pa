@@ -568,9 +568,44 @@ const CAL = {
   gcalToken: null,        // OAuth access token for Google Calendar
   gcalConnected: false,
   gcalError: null,
+  showPersonal: false,    // Hide non-travel Google events by default — Nomad's calendar is travel-only
 };
-const CAL_TYPES = ['flight','stay','transfer','activity','note'];
+const CAL_TYPES = ['flight','stay','transfer','activity','note','personal'];
 const GCAL_SCOPE = 'https://www.googleapis.com/auth/calendar.events.readonly';
+
+// Travel-keyword classifier for Google Calendar events.
+// We can't ask Google to filter for us, so we scan title + location + description
+// for travel signals and tag everything else as 'personal'. Keyword lists are
+// intentionally broad to catch the common cases (airline names, hotel chains,
+// transfer providers, sightseeing words). Misses default to 'personal' — safe,
+// since personal is hidden by default.
+const GCAL_PATTERNS = {
+  flight: [
+    /\b(flight|departure|arrival|airport|airline|boarding|terminal|layover|stopover|check-in|fly to|flying to)\b/i,
+    /\b(qantas|virgin australia|virgin atlantic|singapore airlines|emirates|etihad|cathay|jal|ana|klm|lufthansa|british airways|delta|united|american airlines|air france|turkish airlines|korean air|thai airways|jetstar|air new zealand|easyjet|ryanair|swiss|finnair|iberia|alitalia|tap|sas|jal|china airlines|eva air)\b/i,
+  ],
+  stay: [
+    /\b(hotel|airbnb|hostel|b&b|bnb|accommodation|apartment|resort|guesthouse|guest house|villa|stay at|staying at|check[- ]?in|check[- ]?out|nights at)\b/i,
+    /\b(booking\.com|hotels\.com|vrbo|agoda|hilton|marriott|hyatt|ihg|sheraton|holiday inn|four seasons|ritz[- ]carlton|westin|fairmont|kimpton|accor|novotel|ibis|premier inn|travelodge)\b/i,
+  ],
+  transfer: [
+    /\b(transfer|taxi|uber|lyft|bolt|didi|grab|rideshare|train to|train from|rail|metro|subway|tube|bus|coach|ferry|shuttle|station|platform)\b/i,
+    /\b(rental car|car hire|hire car|hertz|avis|europcar|enterprise|sixt|alamo|thrifty|budget rent)\b/i,
+  ],
+  activity: [
+    /\b(tour|excursion|sightseeing|museum|gallery|exhibition|cruise|safari|trekking|hike|guided|day trip|tickets to|reservation at|booking at|attraction)\b/i,
+    /\b(visa|passport|esta|eta|embassy|consulate|immigration)\b/i,
+  ],
+};
+
+function classifyGcalEvent(it){
+  const text = [it.summary, it.location, it.description].filter(Boolean).join(' ​ ');
+  if (!text.trim()) return 'personal';
+  for (const type of ['flight','stay','transfer','activity']) {
+    if (GCAL_PATTERNS[type].some(rx => rx.test(text))) return type;
+  }
+  return 'personal';
+}
 
 function calCacheKey(){
   const uid = window.__nomadCloud?.uid;
@@ -588,8 +623,23 @@ function parseYmd(s){
 function eventsForDay(date){
   const key = ymd(date);
   const ours = CAL.events.filter(e => dateInRange(key, e.date, e.endDate));
-  const theirs = CAL.gcalEvents.filter(e => dateInRange(key, e.date, e.endDate));
+  const theirs = CAL.gcalEvents.filter(e => {
+    if (!dateInRange(key, e.date, e.endDate)) return false;
+    if (e.type === 'personal' && !CAL.showPersonal) return false;
+    return true;
+  });
   return ours.concat(theirs);
+}
+
+function showPersonalKey(){
+  const uid = window.__nomadCloud?.uid;
+  return uid ? `nomad.cal.showPersonal.${uid}` : 'nomad.cal.showPersonal';
+}
+function loadShowPersonal(){
+  try { CAL.showPersonal = localStorage.getItem(showPersonalKey()) === '1'; } catch(e) { CAL.showPersonal = false; }
+}
+function saveShowPersonal(){
+  try { localStorage.setItem(showPersonalKey(), CAL.showPersonal ? '1' : '0'); } catch(e){}
 }
 function dateInRange(target, start, end){
   if (!start) return false;
@@ -928,12 +978,30 @@ async function fetchGcalEventsForView(){
     const resp = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?${params}`, {
       headers: { Authorization: `Bearer ${tok.access_token}` },
     });
-    if (resp.status === 401 || resp.status === 403) {
-      clearGcalToken();
-      CAL.gcalError = 'Google Calendar access expired — reconnect.';
+    if (!resp.ok) {
+      let detail = '';
+      try {
+        const errBody = await resp.json();
+        detail = errBody?.error?.message || '';
+      } catch(e){}
+      console.warn('[gcal API ' + resp.status + ']', detail);
+      if (resp.status === 401) {
+        clearGcalToken();
+        CAL.gcalError = 'Google Calendar session expired — reconnect.';
+      } else if (resp.status === 403) {
+        clearGcalToken();
+        if (/disabled|has not been used|api/i.test(detail)) {
+          CAL.gcalError = 'Calendar API not enabled in Google Cloud — see setup steps.';
+        } else if (/insufficient|scope|permission/i.test(detail)) {
+          CAL.gcalError = 'Calendar scope not approved — add it to OAuth consent screen.';
+        } else {
+          CAL.gcalError = 'Google denied the request: ' + (detail || '403 Forbidden');
+        }
+      } else {
+        CAL.gcalError = 'Google Calendar API error ' + resp.status + (detail ? ' — ' + detail : '');
+      }
       return;
     }
-    if (!resp.ok) throw new Error('Google Calendar API error ' + resp.status);
     const data = await resp.json();
     CAL.gcalEvents = (data.items || []).map(it => normaliseGcalEvent(it)).filter(Boolean);
     CAL.gcalConnected = true;
@@ -972,7 +1040,7 @@ function normaliseGcalEvent(it){
   return {
     id: 'g_' + it.id,
     source: 'gcal',
-    type: 'note',
+    type: classifyGcalEvent(it),
     title: it.summary || '(untitled)',
     date, endDate,
     startTime, endTime,
@@ -983,6 +1051,8 @@ function normaliseGcalEvent(it){
 
 function renderGcalCardHTML(){
   if (CAL.gcalConnected) {
+    const personalCount = CAL.gcalEvents.filter(e => e.type === 'personal').length;
+    const travelCount = CAL.gcalEvents.length - personalCount;
     return `
       <div class="cal-gcal-row">
         <div class="cal-gcal-ic">${gcalIconSvg()}</div>
@@ -992,7 +1062,16 @@ function renderGcalCardHTML(){
         </div>
         <button class="cal-gcal-btn disconnect" data-act="disconnect">Disconnect</button>
       </div>
-      <div class="cal-gcal-sub">Events from your primary Google calendar appear with a dashed border. They're read-only here.</div>
+      <div class="cal-gcal-sub">Nomad auto-detects travel events (flights, stays, transfers, activities) by keyword. Other events are tagged Personal and hidden by default.</div>
+      <div class="cal-gcal-filter">
+        <div class="cal-gcal-filter-row">
+          <div class="cal-gcal-filter-label">
+            <div class="cal-gcal-filter-title">Show personal events</div>
+            <div class="cal-gcal-filter-sub">${travelCount} travel · ${personalCount} personal in this view</div>
+          </div>
+          <div class="tog ${CAL.showPersonal ? 'on' : ''}" data-act="toggle-personal"></div>
+        </div>
+      </div>
     `;
   }
   const errLine = CAL.gcalError ? `<span class="cal-gcal-status error">${esc(CAL.gcalError)}</span>` : '';
@@ -1014,17 +1093,27 @@ function gcalIconSvg(){
 }
 function wireGcalCard(card){
   const btn = card.querySelector('button[data-act]');
-  if (!btn) return;
-  btn.onclick = () => {
-    if (btn.dataset.act === 'connect') connectGoogleCalendar();
-    else disconnectGoogleCalendar();
-  };
+  if (btn) {
+    btn.onclick = () => {
+      if (btn.dataset.act === 'connect') connectGoogleCalendar();
+      else disconnectGoogleCalendar();
+    };
+  }
+  const tog = card.querySelector('.tog[data-act="toggle-personal"]');
+  if (tog) {
+    tog.onclick = () => {
+      CAL.showPersonal = !CAL.showPersonal;
+      saveShowPersonal();
+      renderCalendar();
+    };
+  }
 }
 
 /* Wire calendar UI once the DOM is ready */
 function initCalendar(){
   if (!$('#cal-grid')) return;
   loadCalEvents();
+  loadShowPersonal();
 
   $('#cal-prev').addEventListener('click', () => { CAL.view = new Date(CAL.view.getFullYear(), CAL.view.getMonth()-1, 1); fetchGcalEventsForView().then(renderCalendar); });
   $('#cal-next').addEventListener('click', () => { CAL.view = new Date(CAL.view.getFullYear(), CAL.view.getMonth()+1, 1); fetchGcalEventsForView().then(renderCalendar); });
